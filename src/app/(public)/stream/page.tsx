@@ -53,7 +53,7 @@ export default function MdFile() {
 
   return (
     <div className="flex items-center justify-center h-[100vh] w-[100wh]">
-      <video ref={player} className="w-full h-full" width="100%" height="100%" autoPlay={state.isPlaying} muted={false} controls={true} src={url} />
+      <video ref={player} className="w-full h-full pointer-events-none" width="100%" height="100%" autoPlay={state.isPlaying} muted={false} controls={false} src={url} />
     </div>
   );
 }
