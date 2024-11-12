@@ -2,7 +2,7 @@
 
 import { MenuItem, PageLayout, PageLayoutAside } from "@gravity-ui/navigation";
 import { useMemo, useState } from "react";
-import logoIcon from "./icons/logo.svg";
+import logoIcon from "../icons/logo.svg";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function MenuLayout({
@@ -26,6 +26,18 @@ export default function MenuLayout({
         router.push('/s3');
       },
       current: pathname === '/s3',
+    },
+    {
+      id: 'control',
+      title: 'Управление',
+      icon: logoIcon,
+      link: '/control',
+      onItemClick(item, collapsed, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push('/control');
+      },
+      current: pathname === '/control',
     },
   ], [pathname]);
   

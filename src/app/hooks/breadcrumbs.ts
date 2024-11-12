@@ -5,14 +5,8 @@ export const useBreadcrumbs = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const getParams = useCallback((bucket?: string | null, path?: string | null) => {
+  const getParams = useCallback((path?: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
-
-    if (bucket) {
-      params.set('bucket', bucket);
-    } else {
-      params.delete('bucket');
-    }
 
     if (path) {
       params.set('path', path);
@@ -23,12 +17,11 @@ export const useBreadcrumbs = () => {
     return params.toString();
   }, [searchParams]);
   
-  const updateParams = useCallback((bucket?: string | null, path?: string | null) => {
-    router.push(`/s3?${getParams(bucket, path)}`);
+  const updateParams = useCallback((path?: string | null) => {
+    router.push(`/s3?${getParams(path)}`);
   }, [getParams, searchParams]);
 
   const breadcrumbs = useMemo(() => {
-    const bucket = searchParams.get('bucket');
     const path = searchParams.get('path');
 
     const arr: {
@@ -36,17 +29,10 @@ export const useBreadcrumbs = () => {
       action: () => void;
     }[] = [
       {
-        text: `Корзины`,
+        text: `Корзина`,
         action: () => updateParams(),
       }
     ];
-
-    if (bucket) {
-      arr.push({
-        text: bucket,
-        action: () => updateParams(bucket),
-      });
-    }
 
     const paths = path?.split('/') || [];
     const bread: string[] = [];
@@ -57,7 +43,7 @@ export const useBreadcrumbs = () => {
 
       arr.push({
         text: name,
-        action: () => updateParams(bucket, key),
+        action: () => updateParams(key),
       });
     }
 
@@ -68,7 +54,6 @@ export const useBreadcrumbs = () => {
     searchParams,
     breadcrumbs,
     updateParams,
-    bucket: searchParams.get('bucket'),
     path: searchParams.get('path'),
     getParams,
   }

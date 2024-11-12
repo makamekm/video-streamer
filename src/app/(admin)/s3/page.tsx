@@ -51,13 +51,13 @@ export default function Home() {
 
   const { add } = useToaster();
   const router = useRouter();
-  const { searchParams, breadcrumbs, bucket, path, updateParams, getParams } = useBreadcrumbs();
+  const { searchParams, breadcrumbs, updateParams, getParams } = useBreadcrumbs();
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     name: string;
     key: string;
-    type: 'bucket' | 'folder' | 'file';
+    type: 'folder' | 'file';
   }[]>([]);
  
   const fetchData = useCallback(async () => {
@@ -106,7 +106,7 @@ export default function Home() {
           />
         </div>
         <div className="w-full flex justify-end gap-2">
-          <Button size="l" onClick={modalCreate.current?.open} disabled={loading || !bucket}>Создать</Button>
+          <Button size="l" onClick={modalCreate.current?.open} disabled={loading}>Создать</Button>
         </div>
         <DataTable
           className="w-full [&>table]:w-full"
@@ -114,23 +114,21 @@ export default function Home() {
           columns={columns}
           getRowActions={getRowActions({
             onDelete: (item) => modalDelete.current?.open(item.key, item.type),
-            onOpen: (item) => window.open(`/api/s3/get?${getParams(bucket, item.key)}`, '_blank'),
+            onOpen: (item) => window.open(`/api/s3/get?${getParams(item.key)}`, '_blank'),
           })}
           onRowClick={item => {
-            if (item.type === 'bucket') {
-              updateParams(item.key, path);
-            } else if (item.type === 'folder') {
-              updateParams(bucket, item.key);
+            if (item.type === 'folder') {
+              updateParams(item.key);
             } else if (item.type === 'file' && ['md'].includes(item.ext)) {
-              router.push(`/md?${getParams(bucket, item.key)}`);
+              router.push(`/md?${getParams(item.key)}`);
             } else if (item.type === 'file' && ['yaml', 'yml', 'yfm'].includes(item.ext)) {
-              router.push(`/yaml?${getParams(bucket, item.key)}`);
+              router.push(`/yaml?${getParams(item.key)}`);
             } else if (item.type === 'file' && ['json'].includes(item.ext)) {
-              router.push(`/json?${getParams(bucket, item.key)}`);
+              router.push(`/json?${getParams(item.key)}`);
             } else if (item.type === 'file' && ['mp4'].includes(item.ext)) {
-              router.push(`/video?${getParams(bucket, item.key)}`);
+              router.push(`/video?${getParams(item.key)}`);
             } else {
-              window.open(`/api/s3/get?${getParams(bucket, item.key)}`, '_blank');
+              window.open(`/api/s3/get?${getParams(item.key)}`, '_blank');
             }
           }}
         />

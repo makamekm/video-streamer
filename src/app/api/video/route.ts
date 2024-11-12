@@ -5,7 +5,7 @@ import { getS3 } from '../s3/storage';
 import { normalizePath } from '../s3/path-utils';
  
 export async function GET(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket');
+  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
   
   if (!bucket) {

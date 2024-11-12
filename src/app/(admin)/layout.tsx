@@ -9,7 +9,7 @@ const rootClassName = getRootClassName({theme});
 
 import {configure, ThemeProvider, ToasterComponent, ToasterProvider} from '@gravity-ui/uikit';
 import Loading from "../components/loading";
-import MenuLayout from "../menu-layout";
+import MenuLayout from "./menu-layout";
 
 configure({
   lang: 'ru',

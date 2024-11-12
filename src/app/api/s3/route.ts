@@ -3,7 +3,7 @@ import { getS3 } from './storage';
 import { getExt, normalizeName, normalizePath } from './path-utils';
 
 export async function GET(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket');
+  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
   const sub = !!req.nextUrl.searchParams.get('sub');
 
