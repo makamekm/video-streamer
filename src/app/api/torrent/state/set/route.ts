@@ -1,23 +1,17 @@
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
+import { TorrentState } from '@/app/state';
 import { getS3 } from '@/app/api/storage';
-import { normalizePath } from '@/app/api/path-utils';
+import { readJSON } from '@/app/api/read';
 
 export async function POST(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
-  const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
-  const body = await req.text() || '';
-  
+  const path = 'torrent.json';
+  const body = await req.json() ?? {};
+
   if (!bucket) {
     return Response.json(
       { success: false, message: 'no bucket' },
-      { status: 404 },
-    );
-  }
-  
-  if (!path) {
-    return Response.json(
-      { success: false, message: 'no path' },
       { status: 404 },
     );
   }
@@ -25,15 +19,21 @@ export async function POST(req: NextRequest) {
   const s3 = await getS3();
 
   try {
+    const json = await readJSON<TorrentState>(path, {}, bucket);
+    const state = {
+      ...json,
+      ...body,
+    };
+
     await s3.putObject({
-      Bucket: bucket!,
+      Bucket: bucket,
       Key: path,
       ContentType: mime.lookup(path) || undefined,
-      Body: body!,
+      Body: JSON.stringify(state),
     });
     
     return Response.json(
-      { success: true },
+      state,
       {
         status: 200,
         statusText: "OK",
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     return Response.json(
       { success: false, message: error?.toString() },
-      { status: 404 },
+      { status: 500 },
     );
   }
 }

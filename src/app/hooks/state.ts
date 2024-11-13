@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { State } from "../state";
+import { DependencyList, useCallback, useEffect, useMemo, useState } from "react";
+import { State, TorrentState } from "../state";
 
-export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
-  const [state, setState] = useState<State>({});
+export const useServerState = (url: string, body: any, fn: (data: string) => void | Promise<void>) => {
+  const [loading, setLoading] = useState(true);
+  const [inited, setInited] = useState(false);
+  const [counter, setCounter] = useState(0);
+
   const controllState = useMemo<{
     canListening: boolean;
     isListening: boolean;
@@ -11,19 +14,24 @@ export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
     canListening: true,
     isListening: false,
     reader: null,
-  }), []);
+  }), [body, counter]);
 
   const startListening = useCallback(async () => {
     controllState.isListening = true;
 
     try {
-      const response = await fetch("/api/video/state", {
+      setLoading(true);
+
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "text/event-stream",
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify(body ?? {}),
       });
+
+      setLoading(false);
+      setInited(true);
     
       if (!response.body) return;
     
@@ -35,11 +43,12 @@ export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
     
       while (true) {
         const { value, done } = await reader.read();
+
         if (done) {
           break;
         }
+
         if (value) {
-          setState(JSON.parse(value));
           fn?.(value);
         }
       }
@@ -49,13 +58,13 @@ export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
 
     controllState.reader = null;
     controllState.isListening = false;
-  }, []);
+  }, [controllState, body]);
 
-  const updateState = async () => {
+  const updateState = useCallback(async () => {
     if (!controllState.isListening && controllState.canListening && !controllState.reader) {
       await startListening();
     }
-  };
+  }, [controllState, body, counter]);
 
   useEffect(() => {
     controllState.canListening = true;
@@ -68,7 +77,27 @@ export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
       controllState.reader?.cancel();
       controllState.reader = null;
     };
-  }, []);
+  }, [controllState, body, counter]);
+
+  const update = useCallback((reinit = false) => {
+    setCounter(counter + 1);
+    if (reinit) {
+      setInited(false);
+    }
+  }, [counter]);
+
+  return {
+    loading,
+    inited,
+    update,
+  }
+}
+
+export const useVideoState = (body?: any) => {
+  const [state, setState] = useState<State>({});
+  const serverState = useServerState("/api/video/state/get", body, value => {
+    setState(JSON.parse(value));
+  });
 
   const apply = async (state: State) => {
     const response = await fetch("/api/video/state/set", {
@@ -85,5 +114,32 @@ export const useVideoState = (fn?: (data: string) => void | Promise<void>) => {
   return {
     state,
     apply,
+    ...serverState,
   };
 }
+
+export const useTorrentState = (body?: any) => {
+  const [state, setState] = useState<TorrentState>({});
+  const serverState = useServerState("/api/torrent/state/get", body, value => {
+    setState(JSON.parse(value));
+  }, );
+
+  const apply = async (state: State) => {
+    const response = await fetch("/api/video/state/set", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(state),
+    });
+    const value = await response.json();
+    setState(value);
+  };
+
+  return {
+    state,
+    apply,
+    ...serverState,
+  };
+}
+

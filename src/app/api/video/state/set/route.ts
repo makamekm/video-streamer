@@ -1,11 +1,8 @@
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
 import { State } from '@/app/state';
-import { getS3 } from '../../../s3/storage';
-import { readJSON } from '../read';
-
-// Prevents this route's response from being cached on Vercel
-export const dynamic = "force-dynamic";
+import { getS3 } from '@/app/api/storage';
+import { readJSON } from '@/app/api/read';
 
 export async function POST(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;

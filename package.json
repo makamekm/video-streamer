@@ -28,7 +28,8 @@
     "react-dom": "^18",
     "react-player": "^2.16.0",
     "rxjs": "^7.8.1",
-    "sass": "^1.80.6"
+    "sass": "^1.80.6",
+    "torrent-stream": "^1.2.1"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",

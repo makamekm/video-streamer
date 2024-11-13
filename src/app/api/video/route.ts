@@ -1,8 +1,8 @@
 import ffmpeg from "fluent-ffmpeg"
 import { Readable, Transform } from "node:stream"
 import { type NextRequest, NextResponse } from 'next/server';
-import { getS3 } from '../s3/storage';
-import { normalizePath } from '../s3/path-utils';
+import { getS3 } from '@/app/api/storage';
+import { normalizePath } from '@/app/api/path-utils';
  
 export async function GET(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;

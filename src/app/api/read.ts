@@ -1,4 +1,4 @@
-import { getS3 } from '../../s3/storage';
+import { getS3 } from './storage';
 
 export async function readJSON<T>(path: string, value: T, bucket?: string) {
   bucket = bucket ?? process.env.STORAGE_BUCKET;

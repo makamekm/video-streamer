@@ -39,6 +39,18 @@ export default function MenuLayout({
       },
       current: pathname === '/control',
     },
+    {
+      id: 'torrent',
+      title: 'Торрент',
+      icon: logoIcon,
+      link: '/torrent',
+      onItemClick(item, collapsed, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push('/torrent');
+      },
+      current: pathname === '/torrent',
+    },
   ], [pathname]);
   
   return (

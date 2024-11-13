@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server';
-import { getS3 } from './storage';
-import { getExt, normalizeName, normalizePath } from './path-utils';
+import { getS3 } from '@/app/api/storage';
+import { getExt, normalizeName, normalizePath } from '@/app/api/path-utils';
 
 export async function GET(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
