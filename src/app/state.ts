@@ -3,9 +3,20 @@ export interface State {
     events?: [string, ...any][];
     played?: string[];
     playlist?: string[];
-    playlists?: any[];
+    playlists?: Playlist[];
     current?: string;
     video?: any;
+}
+
+export interface Playlist {
+    id: string;
+    name: string;
+    items: PlaylistItem[];
+}
+
+export interface PlaylistItem {
+    id: string;
+    key: string;
 }
 
 export interface TorrentState {
