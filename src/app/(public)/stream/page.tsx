@@ -8,9 +8,10 @@ import { useVideoState } from "@/app/hooks/state";
 export default function MdFile() {
   const player = useRef<HTMLVideoElement>(null);
   const { searchParams } = useBreadcrumbs();
-  const url = useMemo(() => `/api/video?bucket=stream-video&path=BigBuckBunny.mp4`, [...searchParams.values()]);
 
   const {state, apply} = useVideoState();
+
+  const url = useMemo(() => `/api/video?path=${state.current}`, [...searchParams.values()]);
 
   useEffect(() => {
     if (state.isPlaying && player.current?.paused == true) {

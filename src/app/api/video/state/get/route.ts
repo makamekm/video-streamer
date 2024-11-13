@@ -1,13 +1,13 @@
 import { type NextRequest } from 'next/server';
 import { State } from '@/app/state';
-import { readJSON } from '@/app/api/read';
+import { nextVideo, readJSON, saveJSON } from '@/app/api/read';
 
 // Prevents this route's response from being cached on Vercel
 export const dynamic = "force-dynamic";
  
 export async function POST(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
-  const path = 'state.json';
+  const pathState = 'state.json';
 
   // Obtain the conversation messages from request's body
   // const { messages = [] } = await request.json();
@@ -17,9 +17,15 @@ export async function POST(req: NextRequest) {
 
   const watch = async () => {
     while(true) {
-      const json = await readJSON<State>(path, {
+      let json = await readJSON<State>(pathState, {
         events: [],
+        played: [],
+        playlist: [],
+        current: undefined,
       }, bucket);
+
+      json = await nextVideo(json);
+
       controller?.enqueue(encoder.encode(JSON.stringify(json)));
       if (!controller) break;
       await new Promise(r => setTimeout(r, 2000));
@@ -34,7 +40,7 @@ export async function POST(req: NextRequest) {
     },
     cancel() {
       controller = null;
-    }
+    },
   });
 
   // Return the stream response and keep the connection alive
