@@ -17,6 +17,7 @@ export interface Playlist {
 export interface PlaylistItem {
     id: string;
     key: string;
+    type: string;
 }
 
 export interface TorrentState {

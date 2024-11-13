@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react";
-import { Button, Card, DropdownMenu, Loader, Overlay, Switch, TextInput } from '@gravity-ui/uikit';
+import { Button, Card, DropdownMenu, Loader, Overlay, Select, Switch, TextInput } from '@gravity-ui/uikit';
 import { Equal, Ellipsis, Plus, ArrowRotateLeft, ArrowRight, Play } from '@gravity-ui/icons';
 import {
   DndContext,
@@ -37,7 +37,7 @@ export function PlaceholderItem(props: {
       <div className="flex-1">
         <TextInput
           size="l"
-          placeholder="Путь к файлу"
+          placeholder="Ключ"
           value={props.item.key}
           disabled
         />
@@ -75,10 +75,10 @@ export function SortableItem(props: {
         <button className="p-2" ref={setActivatorNodeRef} {...listeners}>
           <Equal />
         </button>
-        <div className="flex-1">
+        <div className="flex-1 flex flex-col gap-2">
           <TextInput
             size="l"
-            placeholder="Путь к файлу"
+            placeholder="Ключ"
             value={props.item.key}
             onUpdate={value => {
               props.item.key = value;
@@ -86,6 +86,18 @@ export function SortableItem(props: {
             }}
           />
         </div>
+        <Select
+          value={[props.item.type]}
+          onUpdate={value => {
+            props.item.type = value[0];
+            props.onChange(props.item);
+          }}
+          options={[
+            { value: 'file', content: 'Файл' },
+            { value: 'playlist', content: 'Плейлист' },
+          ]}
+          size="l"
+        />
         {props.children}
       </Card>
     </div>
@@ -195,10 +207,9 @@ export default function MdFile() {
           >
             {
               playlists?.map((playlist, index) => {
-                return <div key={playlist.id} id={playlist.id} className="flex flex-col gap-2 min-w-[100px]">
+                return <div key={playlist.id} id={playlist.id} className="flex flex-col gap-2 min-w-[400px]">
                   <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
-                    <Switch size="l"></Switch>
-                    <TextInput size="l" placeholder="Название плейлиста" value={playlist.name} onUpdate={value => {
+                    <TextInput size="l" placeholder="Ключ" value={playlist.name} onUpdate={value => {
                       playlists[index].name = value;
                       setPlaylists([...playlists]);
                     }} />
@@ -248,6 +259,7 @@ export default function MdFile() {
                         playlists[index].items.push({
                           id: rnd(),
                           key: '',
+                          type: 'file',
                         });
                         setPlaylists([...playlists]);
                       }} view="flat"><Plus /></Button>
