@@ -1,5 +1,5 @@
 import { DependencyList, useCallback, useEffect, useMemo, useState } from "react";
-import { State, TorrentState } from "../state";
+import { PlaylistState, State, TorrentState } from "../state";
 
 export const useServerState = (url: string, body: any, fn: (data: string) => void | Promise<void>) => {
   const [loading, setLoading] = useState(true);
@@ -130,6 +130,31 @@ export const useVideoState = (body?: any) => {
     state,
     apply,
     next,
+    ...serverState,
+  };
+}
+
+export const usePlaylistState = (body?: PlaylistState) => {
+  const [state, setState] = useState<PlaylistState>({});
+  const serverState = useServerState("/api/playlist/state/get", body, value => {
+    setState(JSON.parse(value));
+  });
+
+  const apply = async (state: PlaylistState) => {
+    const response = await fetch("/api/playlist/state/set", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(state),
+    });
+    const value = await response.json();
+    setState(value);
+  };
+
+  return {
+    state,
+    apply,
     ...serverState,
   };
 }

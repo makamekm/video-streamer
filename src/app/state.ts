@@ -2,16 +2,23 @@ export interface State {
     isPlaying?: boolean;
     events?: [string, ...any][];
     played?: string[];
-    playlist?: string[];
+    video?: Video;
+}
+
+export interface PlaylistState {
     playlists?: Playlist[];
-    current?: string;
-    video?: any;
 }
 
 export interface Playlist {
     id: string;
     name: string;
     items: PlaylistItem[];
+}
+
+export interface Video {
+    currentTime: number;
+    key: string;
+    playlistKey?: string | null;
 }
 
 export interface PlaylistItem {

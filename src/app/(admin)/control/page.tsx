@@ -21,8 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { useBreadcrumbs } from "@/app/hooks/breadcrumbs";
-import { useVideoState } from "@/app/hooks/state";
+import { usePlaylistState, useVideoState } from "@/app/hooks/state";
 import { Playlist, PlaylistItem } from "@/app/state";
 
 export function PlaceholderItem(props: {
@@ -54,6 +53,8 @@ export function SortableItem(props: {
   item: PlaylistItem;
   onChange: (item: PlaylistItem) => void;
   children: JSX.Element;
+  playlist: Playlist;
+  playlists: Playlist[];
 }) {
   const {
     attributes,
@@ -69,6 +70,8 @@ export function SortableItem(props: {
     transition,
   };
 
+  const playlists = props.playlists.filter(p => p.id !== props.playlist.id);
+
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" view="filled" size="l">
@@ -76,20 +79,37 @@ export function SortableItem(props: {
           <Equal />
         </button>
         <div className="flex-1 flex flex-col gap-2">
-          <TextInput
-            size="l"
-            placeholder="Ключ"
-            value={props.item.key}
-            onUpdate={value => {
-              props.item.key = value;
-              props.onChange(props.item);
-            }}
-          />
+        {
+          props.item.type === 'playlist'
+          ? <Select
+              size="l"
+              placeholder="Плейлист"
+              value={props.item.key != null && !!playlists.find(p => p.id === props.item.key) ? [props.item.key] : []}
+              onUpdate={value => {
+                props.item.key = value[0];
+                props.onChange(props.item);
+              }}
+              options={playlists.map(playlist => ({
+                value: playlist.id,
+                content: playlist.name,
+              }))}
+            />
+          : <TextInput
+              size="l"
+              placeholder="Ключ"
+              value={props.item.key}
+              onUpdate={value => {
+                props.item.key = value;
+                props.onChange(props.item);
+              }}
+            />
+        }
         </div>
         <Select
           value={[props.item.type]}
           onUpdate={value => {
             props.item.type = value[0];
+            props.item.key = '';
             props.onChange(props.item);
           }}
           options={[
@@ -109,8 +129,9 @@ function rnd() {
 }
 
 export default function MdFile() {
-  const { searchParams } = useBreadcrumbs();
-  const { state, apply, next, loading } = useVideoState(searchParams);
+  // const { searchParams } = useBreadcrumbs();
+  const video = useVideoState();
+  const playlist = usePlaylistState();
 
   const sensors = useSensors(
     useSensor(MouseSensor),
@@ -121,8 +142,8 @@ export default function MdFile() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   useEffect(() => {
-    if (!playlists?.length && !!state.playlists?.length) {
-      setPlaylists(state.playlists.map(playlist => {
+    if (!playlists?.length && !!playlist.state.playlists?.length) {
+      setPlaylists(playlist.state.playlists.map(playlist => {
         playlist.id = playlist.id ?? rnd();
         playlist.items = playlist.items.map(item => {
           item.id = item.id ?? rnd();
@@ -131,14 +152,14 @@ export default function MdFile() {
         return playlist;
       }));
     }
-  }, [state.playlists]);
+  }, [playlist.state.playlists]);
 
   return (
     <div className="flex-1 flex flex-col relative container mx-auto px-2 py-2 min-h-[100%]">
       <div className="flex-1 flex flex-col items-center gap-2">
         <div className="flex items-center justify-center w-full gap-3">
-          <Switch className="flex items-center [&>*]:my-1" size="l" checked={state.isPlaying ?? false} onUpdate={(value) => apply({
-            ...state,
+          <Switch className="flex items-center [&>*]:my-1" size="l" checked={video.state.isPlaying ?? false} onUpdate={(value) => video.apply({
+            ...video.state,
             isPlaying: value,
           })
           }>
@@ -149,9 +170,9 @@ export default function MdFile() {
               </div>
             </div>
           </Switch>
-          <Button size="l" onClick={() => apply({
-            ...state,
-            events: [...(state.events ?? []), ['reload']],
+          <Button size="l" onClick={() => video.apply({
+            ...video.state,
+            events: [...(video.state.events ?? []), ['reload']],
           })}>
             <div className="flex items-center gap-2">
               <ArrowRotateLeft />
@@ -160,7 +181,7 @@ export default function MdFile() {
               </div>
             </div>
           </Button>
-          <Button size="l" onClick={() => next(true)}>
+          <Button size="l" onClick={() => video.next(true)}>
             <div className="flex items-center gap-2">
               <ArrowRight />
               <div>
@@ -238,6 +259,8 @@ export default function MdFile() {
                         playlists[index].items[i] = item;
                         setPlaylists([...playlists]);
                       }}
+                      playlists={playlists}
+                      playlist={playlists[index]}
                     >
                       <DropdownMenu
                         items={[
@@ -287,12 +310,12 @@ export default function MdFile() {
           </DndContext>
         </div>
         <div className="flex items-center justify-center w-full gap-2">
-          <Button size="l" onClick={() => apply({
+          <Button size="l" onClick={() => playlist.apply({
             playlists,
           })}>Сохранить</Button>
         </div>
       </div>
-      <Overlay visible={loading}>
+      <Overlay visible={video.loading || playlist.loading}>
         <Loader />
       </Overlay>
     </div>

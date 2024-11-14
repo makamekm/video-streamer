@@ -1,8 +1,8 @@
 import * as mime from 'mime-types';
 import { getS3 } from './storage';
-import { State } from '../state';
+import { PlaylistState, State, Video } from '../state';
 
-export async function readJSON<T>(path: string, value: T, bucket?: string) {
+export async function readJSON<T>(path: string, value: T, bucket?: string): Promise<T> {
   bucket = bucket ?? process.env.STORAGE_BUCKET;
 
   const s3 = await getS3();
@@ -24,7 +24,7 @@ export async function readJSON<T>(path: string, value: T, bucket?: string) {
   return json;
 }
 
-export async function saveJSON<T>(path: string, value: T, bucket?: string) {
+export async function saveJSON<T>(path: string, value: T, bucket?: string): Promise<T> {
   bucket = bucket ?? process.env.STORAGE_BUCKET;
 
   const s3 = await getS3();
@@ -43,44 +43,56 @@ export async function saveJSON<T>(path: string, value: T, bucket?: string) {
   return value;
 }
 
-export async function nextVideo(state: State, next = false, file?: string) {
-  const playlist = state.playlist ?? [];
+export async function nextVideo(state: State, bucket?: string, next = false, video?: Video) {
+  const playlistState = await readJSON<PlaylistState>('playlist.json', {}, bucket);
+
+  const playlist = playlistState.playlists?.find(p => p.id === state.video?.playlistKey);
+  const playlistItems = playlist?.items ?? [];
+
   let played = state.played ?? [];
   
-  if (next && state.current != null) {
-    if (!played.includes(state.current)) {
-      played.push(state.current);
+  if (next && state.video?.key != null) {
+    if (!played.includes(state.video?.key)) {
+      played.push(state.video?.key);
     }
     state.played = played;
-    state.current = undefined;
+    state.video = undefined;
 
     await saveJSON('state.json', state);
   }
   
-  if (file != null) {
-    played = played.filter(f => f !== file);
+  if (video != null) {
+    played = played.filter(f => f !== video.key);
     state.played = played;
-    state.current = file;
+    state.video = video;
 
     await saveJSON('state.json', state);
   }
 
-  if (state.current == null) {
-    for (const item of playlist) {
-      if (!played.includes(item)) {
-        state.current = item;
+  if (state.video?.key == null) {
+    for (const item of playlistItems) {
+      if (!played.includes(item.key)) {
+        state.video = {
+          currentTime: 0,
+          key: item.key,
+          playlistKey: playlist?.id,
+        };
         break;
       }
     }
 
-    if (state.current != null) {
+    if (state.video?.key != null) {
       await saveJSON('state.json', state);
     }
   }
 
-  if (state.current == null && playlist.length > 0) {
+  if (state.video?.key == null && playlist != null && playlistItems.length > 0) {
     state.played = [];
-    state.current = playlist[0];
+    state.video = {
+      currentTime: 0,
+      key: playlistItems[0].key,
+      playlistKey: playlist?.id,
+    };
 
     await saveJSON('state.json', state);
   }
