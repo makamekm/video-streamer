@@ -128,6 +128,7 @@ export const useVideoState = (body?: any) => {
 
   return {
     state,
+    setState,
     apply,
     next,
     ...serverState,
@@ -154,6 +155,7 @@ export const usePlaylistState = (body?: PlaylistState) => {
 
   return {
     state,
+    setState,
     apply,
     ...serverState,
   };
@@ -179,6 +181,7 @@ export const useTorrentState = (body?: any) => {
 
   return {
     state,
+    setState,
     apply,
     ...serverState,
   };

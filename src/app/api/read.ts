@@ -54,7 +54,6 @@ export function findNextVideo(state: State, playlistState: PlaylistState, playli
         return findNextVideo(state, playlistState, item.key);
       } else {
           return {
-            currentTime: 0,
             key: item.key,
             id: item?.id,
             playlistKey: playlist?.id,
@@ -91,6 +90,7 @@ export async function nextVideo(state: State, bucket: string, {
   if (video != null) {
     state.played = state.played.filter(f => f !== video.id);
     state.video = video;
+    state.currentTime = state.video?.initialTime ?? 0;
 
     update = true;
   } else if (finish) {
@@ -99,6 +99,7 @@ export async function nextVideo(state: State, bucket: string, {
     } else {
       state.video = null;
     }
+    state.currentTime = state.video?.initialTime ?? 0;
 
     if (state.video != null) {
       update = true;
@@ -114,6 +115,7 @@ export async function nextVideo(state: State, bucket: string, {
   if (state.video == null && state.defaultPlaylist) {
     state.played = [];
     state.video = findNextVideo(state, playlistState, state.defaultPlaylist);
+    state.currentTime = state.video?.initialTime ?? 0;
 
     if (state.video != null) {
       update = true;

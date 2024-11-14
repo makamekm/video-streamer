@@ -4,6 +4,7 @@ export interface State {
     played?: string[];
     video?: Video | null;
     defaultPlaylist?: string;
+    currentTime?: number;
 }
 
 export interface PlaylistState {
@@ -17,10 +18,10 @@ export interface Playlist {
 }
 
 export interface Video {
-    currentTime: number;
     key: string;
     id: string;
     playlistKey?: string | null;
+    initialTime?: number;
 }
 
 export interface PlaylistItem {
