@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       played: [],
     }, bucket);
 
-    state = await nextVideo(state, bucket, body.finish ?? true, body.video);
+    state = await nextVideo(state, bucket, body);
     
     return Response.json(
       state,

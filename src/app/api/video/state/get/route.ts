@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         played: [],
       }, bucket);
 
-      videoState = await nextVideo(videoState, bucket);
+      videoState = await nextVideo(videoState, bucket!);
 
       controller?.enqueue(encoder.encode(JSON.stringify(videoState)));
       if (!controller) break;

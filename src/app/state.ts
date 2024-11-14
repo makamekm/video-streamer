@@ -2,7 +2,8 @@ export interface State {
     isPlaying?: boolean;
     events?: [string, ...any][];
     played?: string[];
-    video?: Video;
+    video?: Video | null;
+    defaultPlaylist?: string;
 }
 
 export interface PlaylistState {
@@ -18,6 +19,7 @@ export interface Playlist {
 export interface Video {
     currentTime: number;
     key: string;
+    id: string;
     playlistKey?: string | null;
 }
 

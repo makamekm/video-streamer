@@ -11,7 +11,12 @@ export default function MdFile() {
 
   const {state, apply} = useVideoState();
 
-  const url = useMemo(() => `/api/video?path=${state.current}`, [...searchParams.values()]);
+  const url = useMemo(
+    () => state.video?.key
+      ? `/api/video?path=${state.video?.key}`
+      : '',
+    [...searchParams.values()],
+  );
 
   useEffect(() => {
     if (state.isPlaying && player.current?.paused == true) {
@@ -54,7 +59,18 @@ export default function MdFile() {
 
   return (
     <div className="flex items-center justify-center h-[100vh] w-[100wh]">
-      <video ref={player} className="w-full h-full pointer-events-none" width="100%" height="100%" autoPlay={state.isPlaying} muted={false} controls={false} src={url} />
+      {!url
+        ? null
+        : <video
+          ref={player}
+          className="w-full h-full pointer-events-none"
+          width="100%"
+          height="100%"
+          autoPlay={state.isPlaying}
+          muted={false}
+          controls={false}
+          src={url}
+        />}
     </div>
   );
 }
