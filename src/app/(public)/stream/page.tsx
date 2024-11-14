@@ -104,7 +104,7 @@ export default function MdFile() {
         currentTime: (player.current?.currentTime ?? 0) + (url.time ?? 0),
       });
     };
-    const interval = setInterval(update, 2000);
+    const interval = setInterval(update, 5000);
     return () => {
       clearInterval(interval);
     }
