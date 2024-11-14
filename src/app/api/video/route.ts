@@ -50,11 +50,19 @@ export async function GET(req: NextRequest) {
         callback();
       },
     });
-console.log(toTime(seek));
 
-    const command = ffmpeg({
-      logger: console,
-    })
+    // const meta: ffmpeg.FfprobeFormat = await new Promise((r, e) => {
+    //   ffmpeg(inputStream)
+    //     .ffprobe((err, data) => {
+    //       if (err) {
+    //         e(err);
+    //       } else {
+    //         r(data.format);
+    //       }
+    //     });
+    // });
+
+    const command = ffmpeg()
       .input(inputStream)
       .output(stream, { end: true })
       .outputFormat('mp4')

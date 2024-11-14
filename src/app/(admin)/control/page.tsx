@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { usePlaylistState, useVideoState } from "@/app/hooks/state";
+import { usePlaylistState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
 import { Playlist, PlaylistItem } from "@/app/state";
 
 export function PlaceholderItem(props: {
@@ -159,6 +159,7 @@ export default function MdFile() {
   // const { searchParams } = useBreadcrumbs();
   const video = useVideoState();
   const playlist = usePlaylistState();
+  const meta = useVideoMetaState(video.state.video?.key);
 
   const sensors = useSensors(
     useSensor(MouseSensor),
@@ -209,32 +210,6 @@ export default function MdFile() {
               </div>
             </div>
           </Button>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
-            Видео: {currentVideo?.key || "<Нету>"}
-          </Card>
-          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
-            Плейлист: {currentPlaylist?.name || "<Нету>"}
-          </Card>
-          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
-            Время: {video.state.currentTime ?  toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
-          </Card>
-          <TextInput
-            className="max-w-[200px]"
-            size="l"
-            placeholder="Начало сек."
-            type="number"
-            value={String(seek || 0)}
-            onUpdate={value => {
-              const num = Number.parseFloat(value);
-              setSeek(num);
-            }}
-          />
-        </div>
-
-        <div className="flex items-center justify-center w-full gap-2">
           <Button size="l" onClick={() => video.apply({
             events: [['reload']],
           })}>
@@ -245,10 +220,55 @@ export default function MdFile() {
               </div>
             </div>
           </Button>
-          <Button size="l" onClick={() => video.apply({
-            currentTime: seek,
-            events: [['refresh']],
-          })}>Применить</Button>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+            Видео: {currentVideo?.key || "<Нету>"}
+          </Card>
+          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+            Плейлист: {currentPlaylist?.name || "<Нету>"}
+          </Card>
+          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+            Время: {video.state.currentTime ?  toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
+          </Card>
+          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+            Прогресс: {toTime(video.state.currentTime)} / {toTime(meta.state.duration ?? 0)} ({video.state.currentTime?.toFixed()} / {(meta.state.duration ?? 0).toFixed()})
+          </Card>
+          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+            <Select
+              className="w-full"
+              size="l"
+              placeholder="Плейлист"
+              value={video.state.defaultPlaylist != null && !!playlists.find(p => p.id === video.state.defaultPlaylist) ? [video.state.defaultPlaylist] : []}
+              onUpdate={value => {
+                video.apply({
+                  defaultPlaylist: value[0],
+                })
+              }}
+              options={playlists.map(playlist => ({
+                value: playlist.id,
+                content: playlist.name,
+              }))}
+            />
+          </Card>
+          <div className="flex gap-2">
+            <TextInput
+              className="max-w-[200px]"
+              size="l"
+              placeholder="Начало сек."
+              type="number"
+              value={String(seek || 0)}
+              onUpdate={value => {
+                const num = Number.parseFloat(value);
+                setSeek(num);
+              }}
+            />
+            <Button size="l" onClick={() => video.apply({
+              seek: seek,
+              events: [['refresh']],
+            })}>Перемотать</Button>
+          </div>
         </div>
 
         <div className="flex gap-2 w-full overflow-x-auto max-w-full p-4">

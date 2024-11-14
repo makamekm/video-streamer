@@ -5,6 +5,7 @@ export interface State {
     video?: Video | null;
     defaultPlaylist?: string;
     currentTime?: number;
+    seek?: number;
 }
 
 export interface PlaylistState {

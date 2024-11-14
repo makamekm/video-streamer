@@ -1,7 +1,7 @@
 import { DependencyList, useCallback, useEffect, useMemo, useState } from "react";
 import { PlaylistState, State, TorrentState } from "../state";
 
-export const useServerState = (url: string, body: any, fn: (data: string) => void | Promise<void>) => {
+export const useServerState = (url: string, body: any, fn: (data: string) => void | Promise<void>, deps: DependencyList = []) => {
   const [loading, setLoading] = useState(true);
   const [inited, setInited] = useState(false);
   const [counter, setCounter] = useState(0);
@@ -58,13 +58,13 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
 
     controllState.reader = null;
     controllState.isListening = false;
-  }, [controllState, body]);
+  }, [controllState, url, ...deps]);
 
   const updateState = useCallback(async () => {
     if (!controllState.isListening && controllState.canListening && !controllState.reader) {
       await startListening();
     }
-  }, [controllState, body, counter]);
+  }, [controllState, counter, startListening]);
 
   useEffect(() => {
     controllState.canListening = true;
@@ -77,7 +77,7 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
       controllState.reader?.cancel();
       controllState.reader = null;
     };
-  }, [controllState, body, counter]);
+  }, [controllState, updateState]);
 
   const update = useCallback((reinit = false) => {
     setCounter(counter + 1);
@@ -91,6 +91,55 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
     inited,
     update,
   }
+}
+
+export const useMetaState = (url: string | undefined | null, body: any, defaultValue: any, deps: DependencyList = []) => {
+  const [state, setState] = useState(defaultValue);
+  const [loading, setLoading] = useState(true);
+  const [inited, setInited] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!url) return;
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/event-stream",
+        },
+        body: JSON.stringify(body ?? {}),
+      });
+
+      setState(await response.json());
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+      setInited(true);
+    }
+  }, [url, ...deps]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return {
+    loading,
+    inited,
+    state,
+    load,
+    setState,
+  }
+}
+
+export const useVideoMetaState = (key: string | undefined) => {
+  const serverState = useMetaState(key ? `/api/video/state/meta?path=${key}` : null, {}, {});
+
+  return {
+    ...serverState,
+  };
 }
 
 export const useVideoState = (body?: any) => {

@@ -2,22 +2,33 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVideoState } from "@/app/hooks/state";
+import { Spin } from "@gravity-ui/uikit";
 
 export default function MdFile() {
   const player = useRef<HTMLVideoElement>(null);
+  const [inited, setInited] = useState(false);
   const [counter, setCounter] = useState(0);
 
   const {state, setState, apply} = useVideoState();
 
   const url = useMemo(
-    () => ({
-      src: state.video?.key
-      ? `/api/video?id=${state.video.id}&path=${state.video.key}&seek=${state.currentTime ?? 0}`
-      : '',
-      startTime: state.currentTime ?? 0,
-    }),
-    [state.video?.id, state.video?.key, counter],
+    () => {
+      const time = inited ? (state.seek ?? 0) : (state.currentTime ?? 0);
+      return {
+        src: state.video?.key
+        ? `/api/video?id=${state.video.id}&path=${state.video.key}&seek=${time}&counter=${counter}`
+        : '',
+        time: time,
+      };
+    },
+    [state.video?.id, state.video?.key, state.seek, counter],
   );
+
+  useEffect(() => {
+    if (!inited && (state.currentTime != null || state.seek != null)) {
+      setInited(true);
+    }
+  }, [state.video?.key, state.currentTime]);
 
   useEffect(() => {
     const onFinish = async () => {
@@ -90,23 +101,29 @@ export default function MdFile() {
   useEffect(() => {
     const update = () => {
       apply({
-        currentTime: (player.current?.currentTime ?? 0) + url.startTime,
+        currentTime: (player.current?.currentTime ?? 0) + (url.time ?? 0),
       });
     };
-    const interval = setInterval(update, 4000);
+    const interval = setInterval(update, 2000);
     return () => {
       clearInterval(interval);
     }
-  }, [player.current]);
+  }, [player.current, state.video?.id, state.video?.key, counter]);
 
   return (
-    <div className="flex items-center justify-center h-[100vh] w-[100wh]">
+    <div className="relative flex items-center justify-center h-[100vh] w-[100wh]">
+      <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 text-white">
+        <div className="flex items-center gap-4">
+          <Spin />
+          <div>Загрузка</div>
+        </div>
+      </div>
       {!url.src
         ? null
         : <video
           key={url.src}
           ref={player}
-          className="w-full h-full pointer-events-none"
+          className="relative w-full h-full pointer-events-none"
           width="100%"
           height="100%"
           autoPlay={state.isPlaying}
