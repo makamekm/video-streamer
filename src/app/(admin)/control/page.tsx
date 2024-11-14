@@ -50,6 +50,7 @@ export function PlaceholderItem(props: {
 
 export function SortableItem(props: {
   id: string;
+  active: boolean;
   item: PlaylistItem;
   onChange: (item: PlaylistItem) => void;
   children: JSX.Element;
@@ -74,8 +75,8 @@ export function SortableItem(props: {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
-      <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" view="filled" size="l">
-        <button className="p-2" ref={setActivatorNodeRef} {...listeners}>
+      <Card className="flex items-start w-full py-2 gap-2 px-2 !rounded-lg" view={"filled"} theme={props.active ? "success" : "normal"} size="l">
+        <button className="px-2 py-3" ref={setActivatorNodeRef} {...listeners}>
           <Equal />
         </button>
         <div className="flex-1 flex flex-col gap-2">
@@ -94,7 +95,8 @@ export function SortableItem(props: {
                 content: playlist.name,
               }))}
             />
-          : <TextInput
+          : <>
+            <TextInput
               size="l"
               placeholder="Ключ"
               value={props.item.key}
@@ -103,6 +105,17 @@ export function SortableItem(props: {
                 props.onChange(props.item);
               }}
             />
+            <TextInput
+              size="l"
+              placeholder="Начало сек."
+              type="number"
+              value={String(props.item.initialTime || 0)}
+              onUpdate={value => {
+                props.item.initialTime = Number.parseFloat(value);
+                props.onChange(props.item);
+              }}
+            />
+          </>
         }
         </div>
         <Select
@@ -118,7 +131,9 @@ export function SortableItem(props: {
           ]}
           size="l"
         />
-        {props.children}
+        <div className="py-1">
+          {props.children}
+        </div>
       </Card>
     </div>
   );
@@ -128,7 +143,19 @@ function rnd() {
   return (Math.random() * 1000000).toFixed().toString();
 }
 
+function toTime(totalSeconds?: number | null) {
+  totalSeconds = totalSeconds ?? 0;
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return [hours, minutes, seconds]
+    .map(v => v < 10 ? "0" + v : v)
+    .join(":");
+}
+
 export default function MdFile() {
+  const [seek, setSeek] = useState(0);
   // const { searchParams } = useBreadcrumbs();
   const video = useVideoState();
   const playlist = usePlaylistState();
@@ -154,12 +181,14 @@ export default function MdFile() {
     }
   }, [playlist.state.playlists]);
 
+  const currentVideo = video.state.video;
+  const currentPlaylist = playlists.find(p => p.id === video.state.video?.playlistKey);
+
   return (
     <div className="flex-1 flex flex-col relative container mx-auto px-2 py-2 min-h-[100%]">
       <div className="flex-1 flex flex-col items-center gap-2">
         <div className="flex items-center justify-center w-full gap-3">
           <Switch className="flex items-center [&>*]:my-1" size="l" checked={video.state.isPlaying ?? false} onUpdate={(value) => video.apply({
-            ...video.state,
             isPlaying: value,
           })
           }>
@@ -170,18 +199,9 @@ export default function MdFile() {
               </div>
             </div>
           </Switch>
-          <Button size="l" onClick={() => video.apply({
-            ...video.state,
-            events: [...(video.state.events ?? []), ['reload']],
+          <Button size="l" onClick={() => video.next({
+            finish: true,
           })}>
-            <div className="flex items-center gap-2">
-              <ArrowRotateLeft />
-              <div>
-                Перезагрузить
-              </div>
-            </div>
-          </Button>
-          <Button size="l" onClick={() => video.next(true)}>
             <div className="flex items-center gap-2">
               <ArrowRight />
               <div>
@@ -190,6 +210,47 @@ export default function MdFile() {
             </div>
           </Button>
         </div>
+
+        <div className="flex flex-col gap-2">
+          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
+            Видео: {currentVideo?.key || "<Нету>"}
+          </Card>
+          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
+            Плейлист: {currentPlaylist?.name || "<Нету>"}
+          </Card>
+          <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
+            Время: {video.state.currentTime ?  toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
+          </Card>
+          <TextInput
+            className="max-w-[200px]"
+            size="l"
+            placeholder="Начало сек."
+            type="number"
+            value={String(seek || 0)}
+            onUpdate={value => {
+              const num = Number.parseFloat(value);
+              setSeek(num);
+            }}
+          />
+        </div>
+
+        <div className="flex items-center justify-center w-full gap-2">
+          <Button size="l" onClick={() => video.apply({
+            events: [['reload']],
+          })}>
+            <div className="flex items-center gap-2">
+              <ArrowRotateLeft />
+              <div>
+                Перезагрузить
+              </div>
+            </div>
+          </Button>
+          <Button size="l" onClick={() => video.apply({
+            currentTime: seek,
+            events: [['refresh']],
+          })}>Применить</Button>
+        </div>
+
         <div className="flex gap-2 w-full overflow-x-auto max-w-full p-4">
           <DndContext
             sensors={sensors}
@@ -252,6 +313,7 @@ export default function MdFile() {
                     strategy={verticalListSortingStrategy}
                   >
                     {playlist.items.map((item, i) => <SortableItem
+                      active={item.id === currentVideo?.id}
                       key={item.id}
                       id={index + ':' + item.id}
                       item={item}
@@ -264,6 +326,27 @@ export default function MdFile() {
                     >
                       <DropdownMenu
                         items={[
+                          {
+                            action: () => {
+                              video.next({
+                                video: item,
+                                playlistKey: playlists[index].id, 
+                              });
+                            },
+                            text: 'Запустить',
+                            theme: 'normal',
+                          },
+                          {
+                            action: () => {
+                              video.next({
+                                video: item,
+                                playlistKey: playlists[index].id, 
+                                replay: true,
+                              });
+                            },
+                            text: 'Перезапустить',
+                            theme: 'normal',
+                          },
                           {
                             action: () => {
                               playlists[index].items.splice(i, 1);

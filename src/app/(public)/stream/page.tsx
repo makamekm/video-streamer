@@ -10,10 +10,13 @@ export default function MdFile() {
   const {state, setState, apply} = useVideoState();
 
   const url = useMemo(
-    () => state.video?.key
-      ? `/api/video?path=${state.video?.key}&seek=${state.currentTime ?? 0}`
+    () => ({
+      src: state.video?.key
+      ? `/api/video?id=${state.video.id}&path=${state.video.key}&seek=${state.currentTime ?? 0}`
       : '',
-    [state.video?.key, counter],
+      startTime: state.currentTime ?? 0,
+    }),
+    [state.video?.id, state.video?.key, counter],
   );
 
   useEffect(() => {
@@ -30,16 +33,22 @@ export default function MdFile() {
 
     player.current?.addEventListener('ended', onFinish, false);
   }, [player.current]);
-
-  useEffect(() => {
+  
+  const updatePlayPause = () => {
     if (state.isPlaying && player.current?.paused == true) {
-      player.current?.play();
+      player.current?.play().catch(() => {});
     } else if (!state.isPlaying && player.current?.paused == false) {
       player.current?.pause();
     }
+  }
+
+  useEffect(() => {
+    updatePlayPause();
+    const interval = setInterval(updatePlayPause, 1000);
+    return () => clearInterval(interval);
   }, [state.isPlaying, player.current?.paused]);
 
-  const updateEvents = async () => {
+  const updateEvents = useCallback(async () => {
     let event = state.events?.shift();
 
     if (event != null) {
@@ -72,16 +81,16 @@ export default function MdFile() {
         });
       }
     }
-  }
+  }, [state, counter]);
 
   useEffect(() => {
     updateEvents();
-  }, [state.events]);
+  }, [updateEvents, state.events, counter]);
 
   useEffect(() => {
     const update = () => {
       apply({
-        currentTime: player.current?.currentTime ?? 0,
+        currentTime: (player.current?.currentTime ?? 0) + url.startTime,
       });
     };
     const interval = setInterval(update, 4000);
@@ -92,10 +101,10 @@ export default function MdFile() {
 
   return (
     <div className="flex items-center justify-center h-[100vh] w-[100wh]">
-      {!url
+      {!url.src
         ? null
         : <video
-          key={url}
+          key={url.src}
           ref={player}
           className="w-full h-full pointer-events-none"
           width="100%"
@@ -103,7 +112,7 @@ export default function MdFile() {
           autoPlay={state.isPlaying}
           muted={false}
           controls={false}
-          src={url}
+          src={url.src}
         />}
     </div>
   );

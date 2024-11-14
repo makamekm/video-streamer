@@ -28,6 +28,7 @@ export interface PlaylistItem {
     id: string;
     key: string;
     type: string;
+    initialTime?: number;
 }
 
 export interface TorrentState {

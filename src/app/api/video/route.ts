@@ -3,10 +3,22 @@ import { Readable, Transform } from "node:stream"
 import { type NextRequest, NextResponse } from 'next/server';
 import { getS3 } from '@/app/api/storage';
 import { normalizePath } from '@/app/api/path-utils';
+
+function toTime(totalSeconds?: number | null) {
+  totalSeconds = totalSeconds ?? 0;
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = Math.round(totalSeconds % 60);
+  return [hours, minutes, seconds]
+    .map(v => v < 10 ? "0" + v : v)
+    .join(":");
+}
  
 export async function GET(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
+  const seek = Number.parseFloat(req.nextUrl.searchParams.get('seek') ?? '0') || 0;
   
   if (!bucket) {
     return Response.json(
@@ -38,6 +50,7 @@ export async function GET(req: NextRequest) {
         callback();
       },
     });
+console.log(toTime(seek));
 
     const command = ffmpeg({
       logger: console,
@@ -45,8 +58,9 @@ export async function GET(req: NextRequest) {
       .input(inputStream)
       .output(stream, { end: true })
       .outputFormat('mp4')
-      // .seekInput("00:23:00")
-      .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", '-movflags', 'isml+frag_keyframe'])
+      .seek(toTime(seek))
+      // .seekOutput(toTime(seek))
+      .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
       .on('start', (commandLine) => {
         console.log('Spawned Ffmpeg with command: ' + commandLine);
       })
@@ -65,9 +79,17 @@ export async function GET(req: NextRequest) {
     command.run();
 
     (cmd.Body as any).on("error", () => {
-      command.kill("0");
+      try {
+        command?.kill("1");
+      } catch (error) {
+        //
+      }
     }).on("end", () => {
-      command.kill("0");
+      try {
+        command?.kill("1");
+      } catch (error) {
+        //
+      }
     });
   
     const headers = new Headers();

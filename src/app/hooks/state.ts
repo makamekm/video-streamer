@@ -111,16 +111,13 @@ export const useVideoState = (body?: any) => {
     setState(value);
   };
 
-  const next = async (finish = true, file?: string) => {
+  const next = async (data: any) => {
     const response = await fetch("/api/video/state/next", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        file,
-        finish,
-      }),
+      body: JSON.stringify(data),
     });
     const value = await response.json();
     setState(value);

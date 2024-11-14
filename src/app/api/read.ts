@@ -1,6 +1,6 @@
 import * as mime from 'mime-types';
 import { getS3 } from './storage';
-import { PlaylistState, State, Video } from '../state';
+import { PlaylistItem, PlaylistState, State, Video } from '../state';
 
 export async function readJSON<T>(path: string, value: T, bucket?: string): Promise<T> {
   bucket = bucket ?? process.env.STORAGE_BUCKET;
@@ -54,9 +54,10 @@ export function findNextVideo(state: State, playlistState: PlaylistState, playli
         return findNextVideo(state, playlistState, item.key);
       } else {
           return {
-            key: item.key,
-            id: item?.id,
             playlistKey: playlist?.id,
+            key: item.key,
+            id: item.id,
+            initialTime: item.initialTime,
           };
         }
     }
@@ -69,10 +70,14 @@ export async function nextVideo(state: State, bucket: string, {
   finish,
   reset,
   video,
+  playlistKey,
+  replay,
 }: {
   finish?: boolean;
   reset?: boolean;
-  video?: Video;
+  video?: PlaylistItem;
+  playlistKey?: string;
+  replay?: boolean;
 } = {}) {
   const playlistState = await readJSON<PlaylistState>('playlist.json', {}, bucket);
 
@@ -88,8 +93,20 @@ export async function nextVideo(state: State, bucket: string, {
   }
   
   if (video != null) {
-    state.played = state.played.filter(f => f !== video.id);
-    state.video = video;
+    const playlist = playlistState.playlists?.find(p => p.id === playlistKey);
+    const i = playlist?.items.findIndex(item => item.id === video.id) ?? -1;
+    state.played = !replay && i >= 0 ? (playlist?.items.reduce<string[]>((arr, item, index) => {
+      if (index < i) {
+        arr.push(item.id);
+      }
+      return arr;
+    }, []) ?? []) : state.played.filter(f => f !== video.id);
+    state.video = {
+      playlistKey: playlistKey,
+      key: video.key,
+      id: video.id,
+      initialTime: video.initialTime,
+    };
     state.currentTime = state.video?.initialTime ?? 0;
 
     update = true;
