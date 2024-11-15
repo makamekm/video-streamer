@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { usePlaylistState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
 import { Playlist, PlaylistItem } from "@/app/state";
 
-export function PlaceholderItem(props: {
+function PlaceholderItem(props: {
   item: PlaylistItem;
 }) {
 
@@ -48,7 +48,7 @@ export function PlaceholderItem(props: {
   );
 }
 
-export function SortableItem(props: {
+function SortableItem(props: {
   id: string;
   active: boolean;
   item: PlaylistItem;

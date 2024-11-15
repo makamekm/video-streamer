@@ -121,10 +121,6 @@ export default function Home() {
               updateParams(item.key);
             } else if (item.type === 'file' && ['md'].includes(item.ext)) {
               router.push(`/md?${getParams(item.key)}`);
-            } else if (item.type === 'file' && ['yaml', 'yml', 'yfm'].includes(item.ext)) {
-              router.push(`/yaml?${getParams(item.key)}`);
-            } else if (item.type === 'file' && ['json'].includes(item.ext)) {
-              router.push(`/json?${getParams(item.key)}`);
             } else if (item.type === 'file' && ['mp4', 'mkv', 'mov', 'avi'].includes(item.ext)) {
               router.push(`/video?${getParams(item.key)}`);
             } else {

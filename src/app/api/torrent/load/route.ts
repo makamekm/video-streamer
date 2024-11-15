@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
 import torrentStream from 'torrent-stream';
-import wildcard from 'wildcard';
+const wildcard = require('wildcard');
 import prettyBytes from 'pretty-bytes';
 import { uploadS3 } from '@/app/api/storage';
 import { join, resolve } from 'path';
