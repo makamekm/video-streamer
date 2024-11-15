@@ -125,7 +125,7 @@ export default function Home() {
               router.push(`/yaml?${getParams(item.key)}`);
             } else if (item.type === 'file' && ['json'].includes(item.ext)) {
               router.push(`/json?${getParams(item.key)}`);
-            } else if (item.type === 'file' && ['mp4'].includes(item.ext)) {
+            } else if (item.type === 'file' && ['mp4', 'mkv', 'mov', 'avi'].includes(item.ext)) {
               router.push(`/video?${getParams(item.key)}`);
             } else {
               window.open(`/api/s3/get?${getParams(item.key)}`, '_blank');
