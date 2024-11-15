@@ -1,5 +1,5 @@
 import { launch, getStream } from "puppeteer-stream";
-// import { launch } from "puppeteer";
+import { executablePath } from "puppeteer";
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
 const wildcard = require('wildcard');
@@ -28,13 +28,14 @@ export async function POST(req: NextRequest) {
   }
 
   const browser = await launch({
+    executablePath: executablePath(),
     // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     // executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
     // or on linux: "google-chrome-stable"
     // or on mac: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     headless: "new",
-    channel: 'chrome',
-    userDataDir: resolve("./tmp/chrome" + (Math.random() * 1000000).toFixed()),
+    // channel: 'chrome',
+    userDataDir: resolve("./tmp/chrome_" + (Math.random() * 1_000_000).toFixed()),
     defaultViewport: {
       width: 1920,
       height: 1080,
