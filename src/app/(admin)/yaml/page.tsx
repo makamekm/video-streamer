@@ -4,8 +4,8 @@ import Guifier from 'guifier'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {Button, FirstDisplayedItemsCount, LastDisplayedItemsCount, Loader, Overlay, useToaster} from '@gravity-ui/uikit';
 import {Breadcrumbs} from '@gravity-ui/uikit';
-import {useBreadcrumbs} from "../hooks/breadcrumbs";
-import { useDebouncedEffect } from '../hooks/debounce';
+import {useBreadcrumbs} from "../../hooks/breadcrumbs";
+import { useDebouncedEffect } from '../../hooks/debounce';
 
 export default function MdFile() {
   const { add } = useToaster();
