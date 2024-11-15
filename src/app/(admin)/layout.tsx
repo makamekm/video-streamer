@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import {getRootClassName} from '@gravity-ui/uikit/server';
@@ -38,20 +39,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ThemeProvider theme={theme}>
-      <html lang="en" className={rootClassName}>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          <ToasterProvider>
-            <MenuLayout>
-              {children}
-            </MenuLayout>
-            <ToasterComponent />
-          </ToasterProvider>
-          <Loading theme="light" />
-        </body>
-      </html>
-    </ThemeProvider>
+    <Suspense>
+      <ThemeProvider theme={theme}>
+        <html lang="en" className={rootClassName}>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            <ToasterProvider>
+              <MenuLayout>
+                {children}
+              </MenuLayout>
+              <ToasterComponent />
+            </ToasterProvider>
+            <Loading theme="light" />
+          </body>
+        </html>
+      </ThemeProvider>
+    </Suspense>
   );
 }
