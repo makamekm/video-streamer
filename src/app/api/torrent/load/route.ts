@@ -37,8 +37,22 @@ export async function POST(req: NextRequest) {
     },
   );
 
+  const isIncluded = (path: string) => {
+    let good = path.endsWith('.mkv') || path.endsWith('.avi') || path.endsWith('.mp4') || path.endsWith('.mov') || path.endsWith('.avi');
+    
+    if (good) {
+      for (const pattern of body.wildcards ?? []) {
+        good = good || wildcard(pattern, path);
+      }
+    }
+
+    return good;
+  }
+
+  const getFiles = () => engine?.files.filter((file) => isIncluded(file.path)) ?? [];
+
   const emitFiles = async () => {
-    engine?.files.forEach((file: any) => {
+    getFiles().forEach((file: any) => {
       const fileStart = file.offset;
       const fileEnd = file.offset + file.length;
       const pieceLength = (engine as any).torrent.pieceLength;
@@ -66,7 +80,7 @@ export async function POST(req: NextRequest) {
         downloaedPercent: `${(downloaded / downloadedTotal * 100).toPrecision(2)}%`,
         uploadSpeed: `${prettyBytes((engine as any).swarm.uploadSpeed())}/s`,
       });
-    }) ?? [];
+    });
   }
 
   const promise = new Promise<void>(r => {
@@ -81,23 +95,15 @@ export async function POST(req: NextRequest) {
     engine?.on('upload', emitFiles);
 
     engine?.on('ready', async () => {
-      const files = engine?.files.filter((file) => {
-        let good = file.name.endsWith('.mkv') || file.name.endsWith('.avi') || file.name.endsWith('.mp4') || file.name.endsWith('.mov') || file.name.endsWith('.avi');
-        
-        if (good) {
-          for (const pattern of body.wildcards ?? []) {
-            good = good || wildcard(pattern, file.name);
-          }
-        }
-
-        if (good) {
+      engine?.files.forEach((file) => {
+        if (isIncluded(file.path)) {
           file.select();
         } else {
           file.deselect();
         }
-
-        return good;
       }) ?? [];
+
+      const files = getFiles();
 
       files.forEach(file => {
         emit({
