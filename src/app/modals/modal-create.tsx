@@ -16,21 +16,19 @@ export const ModalCreate = React.forwardRef(({
 }, ref: ForwardedRef<ModalCreateRef>) => {
   const { add } = useToaster();
   const router = useRouter();
-  const { bucket, path, getParams } = useBreadcrumbs();
+  const { path, getParams } = useBreadcrumbs();
 
   const [openCreating, setOpenCreating] = React.useState(false);
   const [creating, setCreating] = useState(false);
   const [creatingName, setCreatingName] = useState('');
 
   const onCreate = useCallback(async () => {
-    if (!bucket) return;
-
     setCreating(true);
 
     try {
       const key = [path, creatingName].join('/');
 
-      await fetch(`/api/s3/post?${getParams(bucket, key)}`, {
+      await fetch(`/api/s3/post?${getParams(key)}`, {
         method: 'POST',
         signal: AbortSignal.timeout(5000),
         body: '',
@@ -39,15 +37,7 @@ export const ModalCreate = React.forwardRef(({
       const parts = key.split('.');
       const ext = parts[parts.length - 1];
 
-      if (['md'].includes(ext)) {
-        router.push(`/md?${getParams(bucket, key)}`);
-      } else if (['yaml', 'yml', 'yfm'].includes(ext)) {
-        router.push(`/yaml?${getParams(bucket, key)}`);
-      } else if (['json'].includes(ext)) {
-        router.push(`/json?${getParams(bucket, key)}`);
-      } else {
-        update();
-      }
+      update();
       
       setOpenCreating(false);
     } catch (error) {
@@ -60,7 +50,7 @@ export const ModalCreate = React.forwardRef(({
     }
 
     setCreating(false);
-  }, [bucket, path, creatingName]);
+  }, [path, creatingName]);
 
   useEffect(() => {
     if (ref != null) {

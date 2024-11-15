@@ -14,7 +14,7 @@ export const ModalDelete = React.forwardRef(({
   update?: () => void;
 }, ref: ForwardedRef<ModalDeleteRef>) => {
   const { add } = useToaster();
-  const { bucket, getParams } = useBreadcrumbs();
+  const { getParams } = useBreadcrumbs();
 
   const [openDeleting, setOpenDeleting] = React.useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -22,12 +22,12 @@ export const ModalDelete = React.forwardRef(({
   const [type, setType] = useState('');
 
   const onDelete = useCallback(async () => {
-    if (!bucket || !key || !type) return;
+    if (!key || !type) return;
 
     setDeleting(true);
 
     try {
-      await fetch(`/api/s3/delete?${getParams(bucket, key)}&type=${type}`, {
+      await fetch(`/api/s3/delete?${getParams(key)}&type=${type}`, {
         method: 'POST',
         signal: AbortSignal.timeout(5000),
       }).then(response => response.status);
@@ -44,7 +44,7 @@ export const ModalDelete = React.forwardRef(({
     }
 
     setDeleting(false);
-  }, [bucket, key, type]);
+  }, [key, type]);
 
   useEffect(() => {
     if (ref != null) {

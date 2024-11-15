@@ -1,14 +1,8 @@
 "use client"
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {Overlay, Loader, Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput} from '@gravity-ui/uikit';
-import {Breadcrumbs} from '@gravity-ui/uikit';
-import { useRouter } from "next/navigation";
-import { useBreadcrumbs } from "@/app/hooks/breadcrumbs";
-import { useDebouncedEffect } from "@/app/hooks/debounce";
-import { ModalCreate, ModalCreateRef } from "@/app/modals/modal-create";
-import { ModalDelete, ModalDeleteRef } from "@/app/modals/modal-delete";
-import { useTorrentState } from "@/app/hooks/state";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput} from '@gravity-ui/uikit';
+import { ModalTorrent, ModalTorrentRef } from "@/app/modals/modal-torrent";
 
 const DataTable = withTableActions(Table);
 
@@ -18,12 +12,20 @@ const columns: TableColumnConfig<TableDataItem>[] = [
     name: 'Имя',
   },
   {
-    id: 'state',
-    name: 'Состояние',
+    id: 'size',
+    name: 'Вес',
   },
   {
-    id: 'date',
-    name: 'Дата',
+    id: 'downloadSpeed',
+    name: 'Скорость',
+  },
+  {
+    id: 'downloadedPercent',
+    name: 'Скачка',
+  },
+  {
+    id: 'uploadedPercent',
+    name: 'Загрузка',
   },
 ];
 
@@ -50,45 +52,114 @@ const getRowActions = ({
   return items;
 };
 
+interface ResponseData {
+  id: string;
+  name: string;
+  response: Response;
+  files: Map<string, {
+    path: string;
+    length: number;
+    size: string;
+    downloaded: number;
+    downloadedTotal: number;
+    downloadSpeed: string;
+    downloadedPercent: string;
+    uploaded: number
+    uploadedTotal: number;
+    uploadedPercent: string;
+  }>;
+}
+
+function rnd() {
+  return (Math.random() * 1000000).toFixed().toString();
+}
+
 export default function Home() {
-  const modalCreate = useRef<ModalCreateRef>(null);
-  const modalDelete = useRef<ModalDeleteRef>(null);
+  const modalTorrent = useRef<ModalTorrentRef>(null);
+  const [data, setData] = useState<ResponseData[]>([]);
 
-  const { searchParams, breadcrumbs, getParams } = useBreadcrumbs();
+  const update = async (response: Response) => {
+    if (!response.body) return;
 
-  const { loading, state, update } = useTorrentState(searchParams);
+    const id = rnd();
+    const item: ResponseData = {
+      id: id,
+      name: id,
+      response,
+      files: new Map(),
+    };
+    setData(data => [...data, item]);
+    
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
+  
+    while (true) {
+      const { value, done } = await reader.read();
+
+      if (done) {
+        break;
+      }
+
+      if (value) {
+        try {
+          const json = JSON.parse(value);
+          switch (json.type) {
+            case 'file':
+              item.files.set(json.path, {
+                ...item.files.get(json.path),
+                ...json,
+              })
+              setData(data => [...data]);
+              break;
+            default:
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    }
+
+    setData(data => data.filter(item => item.id !== id));
+  }
+
+  const fileData = useMemo(() => data.reduce<any>((arr, item) => {
+    arr.push({
+      name: item.name,
+    });
+
+    for (const file of item.files.values()) {
+      arr.push({
+        name: file.path,
+        ...file,
+      });
+    }
+
+    return arr;
+  }, []), [data]);
 
   return (
     <div className="relative container mx-auto px-2 py-2">
       <div className="flex flex-col gap-2 items-center">
-        <div className="w-full px-3">
-          <Breadcrumbs
-            items={breadcrumbs}
-            firstDisplayedItemsCount={FirstDisplayedItemsCount.One}
-            lastDisplayedItemsCount={LastDisplayedItemsCount.Two}
-          />
-        </div>
         <div className="w-full flex justify-end gap-2">
-          <Button size="l" onClick={modalCreate.current?.open} disabled={loading}>Создать</Button>
+          <Button size="l" onClick={() => {
+            modalTorrent.current?.open();
+          }}>Загрузить</Button>
         </div>
         <DataTable
           className="w-full [&>table]:w-full"
-          data={state.torrents ?? []}
+          data={fileData}
           columns={columns}
           getRowActions={getRowActions({
-            onDelete: (item) => modalDelete.current?.open(item.key, item.type),
-            onOpen: (item) => window.open(`/api/s3/get?${getParams(item.key)}`, '_blank'),
+            // onDelete: (item) => modalDelete.current?.open(item.key, item.type),
+            // onOpen: (item) => window.open(`/api/s3/get?${getParams(item.key)}`, '_blank'),
           })}
           onRowClick={item => {
             console.log(item);
           }}
         />
       </div>
-      <Overlay visible={loading}>
-        <Loader />
-      </Overlay>
-      <ModalDelete update={update} ref={modalDelete} />
-      <ModalCreate update={update} ref={modalCreate} />
+      <ModalTorrent update={update} ref={modalTorrent} />
     </div>
   );
 }
