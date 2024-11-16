@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
       // .seekOutput(toTime(seek))
       // .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
       // .outputOptions(['-movflags', 'isml+frag_keyframe'])
-      .outputOptions(['-movflags', 'isml+frag_keyframe', '-b:v', '4M', 'scale=480:320'])
+      .outputOptions(['-movflags', 'isml+frag_keyframe'])
       .on('start', (commandLine) => {
         console.log('Spawned Ffmpeg with command: ' + commandLine);
       })
