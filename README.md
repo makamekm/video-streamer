@@ -15,7 +15,7 @@ bun dev
 ```
 
 docker run -d --name=rtmp --restart=unless-stopped -p 1935:1935 -p 3002:80 alfg/nginx-rtmp
-docker run -d --name=rtmp --restart=unless-stopped -p 8554:8554 -p 3002:8888 bluenviron/mediamtx
+docker run -d --name=rtmp --restart=unless-stopped -p 8554:8554 -p 1935:1935 -p 8000:8000/udp -p 8001:8001/udp -p 3002:8888 bluenviron/mediamtx
 
 ffmpeg -re \
 -f lavfi -i testsrc2=size=960x540 \
