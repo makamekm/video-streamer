@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
       .seek(toTime(seek))
       // .seekOutput(toTime(seek))
       // .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
-      .outputOptions(['-c:v', 'h264', '-preset', 'ultrafast', '-b:v', '3000k', '-framerate', '30', '-maxrate', '3000k', '-bufsize', '6000k', '-g', '50', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-threads', '0', '-s', '1600x900'])
+      .outputOptions(['-c:v', 'h264', '-preset', 'ultrafast', '-b:v', '5000k', '-framerate', '30', '-maxrate', '5000k', '-bufsize', '6000k', '-g', '50', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-threads', '0', '-s', '1600x900'])
       // .outputOptions(['-movflags', 'faststart', '-b:v', '1M', '-b:a', '1M'])
       // .outputOptions(['-c:v', 'libx264', '-preset veryfast', '-movflags', 'isml+frag_keyframe', '-b:v', '8M', '-hls_time', '4', '-hls_playlist_type', 'event'])
       // .outputOptions(['-b:v', '1M', '-b:a', '1M'])
