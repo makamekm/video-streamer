@@ -33,7 +33,7 @@ async function run() {
         .outputFormat('flv')
         //   .seek(toTime(seek))
         // .seekOutput(toTime(seek))
-        .outputOptions(['-movflags', 'isml+frag_keyframe', '-b:v', '4M'])
+        .outputOptions(['-movflags', 'isml+frag_keyframe', '-b:v', '8M'])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
         })
