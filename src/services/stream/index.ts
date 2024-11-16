@@ -29,6 +29,8 @@ async function run() {
         .inputOption(['-re'])
         .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         .outputFormat('flv')
+        .videoBitrate("4M")
+        .audioBitrate("copy")
         //   .seek(toTime(seek))
         // .seekOutput(toTime(seek))
         .outputOptions(['-movflags', 'isml+frag_keyframe'])
