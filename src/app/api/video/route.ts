@@ -64,10 +64,10 @@ export async function GET(req: NextRequest) {
 
     const command = ffmpeg()
       .input(inputStream)
-      .inputOption(['-re'])
+      // .inputOption(['-re'])
       .output(stream, { end: true })
+      .outputFormat('mp4')
       // .outputFormat('mp4')
-      .outputFormat('flv')
       .seek(toTime(seek))
       // .seekOutput(toTime(seek))
       // .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
