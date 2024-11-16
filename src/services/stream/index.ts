@@ -1,5 +1,4 @@
 import ffmpeg from "fluent-ffmpeg"
-import { Readable, Transform } from "node:stream"
 import { launch, getStream } from "puppeteer-stream";
 import { executablePath } from "puppeteer";
 import { resolve } from 'path';
@@ -14,6 +13,7 @@ async function run() {
             width: 640,
             height: 480,
         },
+        args: ['--no-sandbox'],
     });
 
     const page = await browser.newPage();
