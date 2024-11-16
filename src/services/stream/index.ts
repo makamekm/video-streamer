@@ -10,8 +10,10 @@ async function run() {
         headless: "new",
         userDataDir: resolve("./tmp/chrome_" + (Math.random() * 1_000_000).toFixed()),
         defaultViewport: {
-            width: 640,
-            height: 480,
+            // width: 640,
+            // height: 480,
+            width: 1920,
+            height: 1080,
         },
         args: ['--no-sandbox'],
     });
