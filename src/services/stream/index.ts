@@ -12,8 +12,10 @@ async function run() {
         defaultViewport: {
             // width: 640,
             // height: 480,
-            width: 1920,
-            height: 1080,
+            // width: 1920,
+            // height: 1080,
+            width: 1600,
+            height: 900,
         },
         args: ['--no-sandbox'],
     });
@@ -31,8 +33,6 @@ async function run() {
         .inputOption(['-re'])
         .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         .outputFormat('flv')
-        //   .seek(toTime(seek))
-        // .seekOutput(toTime(seek))
         .outputOptions(['-movflags', 'isml+frag_keyframe', '-b:v', '8M'])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
