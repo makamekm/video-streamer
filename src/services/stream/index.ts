@@ -10,12 +10,12 @@ async function run() {
         headless: "new",
         userDataDir: resolve("./tmp/chrome_" + (Math.random() * 1_000_000).toFixed()),
         defaultViewport: {
-            // width: 640,
-            // height: 480,
+            width: 640,
+            height: 480,
             // width: 1920,
             // height: 1080,
-            width: 1600,
-            height: 900,
+            // width: 1600,
+            // height: 900,
         },
         args: ['--enable-gpu', '--no-sandbox'],
     });
@@ -33,7 +33,7 @@ async function run() {
         .inputOption(['-re'])
         .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         .outputFormat('flv')
-        .outputOptions(['-c:v', 'h264', '-preset', 'veryfast', '-b:v', '8000k', '-framerate', '30', '-s', '1600x900'])
+        .outputOptions(['-c:v', 'h264', '-preset', 'veryfast', '-b:v', '8000k', '-framerate', '30'])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
         })
