@@ -17,7 +17,7 @@ async function run() {
             width: 1600,
             height: 900,
         },
-        args: ['--no-sandbox'],
+        args: ['--enable-gpu', '--no-sandbox'],
     });
 
     const page = await browser.newPage();
@@ -33,7 +33,7 @@ async function run() {
         .inputOption(['-re'])
         .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         .outputFormat('flv')
-        .outputOptions(['-movflags', 'isml+frag_keyframe', '-b:v', '8M'])
+        .outputOptions(['-c:v', 'h264', '-preset', 'ultrafast', '-b:v', '8000k', '-framerate', '30', '-maxrate', '8000k', '-bufsize', '6000k', '-g', '50', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-threads', '0', '-s', '1600x900'])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
         })

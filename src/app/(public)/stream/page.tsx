@@ -3,21 +3,22 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVideoState } from "@/app/hooks/state";
 import { Spin } from "@gravity-ui/uikit";
+import HLSPlayer from "@/app/components/hls-player";
 
 export default function MdFile() {
   const player = useRef<HTMLVideoElement>(null);
   const [inited, setInited] = useState(false);
   const [counter, setCounter] = useState(0);
 
-  const {state, setState, apply} = useVideoState();
+  const { state, setState, apply } = useVideoState();
 
   const url = useMemo(
     () => {
       const time = inited ? (state.seek ?? 0) : (state.currentTime ?? 0);
       return {
         src: state.video?.key
-        ? `/api/video?id=${state.video.id}&path=${state.video.key}&seek=${time}&counter=${counter}`
-        : '',
+          ? `/api/video?id=${state.video.id}&path=${state.video.key}&seek=${time}&counter=${counter}`
+          : '',
         time: time,
       };
     },
@@ -44,10 +45,10 @@ export default function MdFile() {
 
     player.current?.addEventListener('ended', onFinish, false);
   }, [player.current]);
-  
+
   const updatePlayPause = () => {
     if (state.isPlaying && player.current?.paused == true) {
-      player.current?.play().catch(() => {});
+      player.current?.play().catch(() => { });
     } else if (!state.isPlaying && player.current?.paused == false) {
       player.current?.pause();
     }
@@ -120,7 +121,7 @@ export default function MdFile() {
       </div>
       {!url.src
         ? null
-        : <video
+        : <HLSPlayer
           key={url.src}
           ref={player}
           className="relative w-full h-full pointer-events-none"
@@ -129,7 +130,7 @@ export default function MdFile() {
           autoPlay={state.isPlaying}
           muted={false}
           controls={false}
-          src={url.src}
+          manifest={"http://localhost:3002/sdfsdf/index.m3u8"}
         />}
     </div>
   );

@@ -14,6 +14,9 @@ pnpm dev
 bun dev
 ```
 
+docker run -d --name=rtmp --restart=unless-stopped -p 1935:1935 -p 3002:80 alfg/nginx-rtmp
+docker run -d --name=rtmp --restart=unless-stopped -p 8554:8554 -p 3002:8888 bluenviron/mediamtx
+
 ffmpeg -re \
 -f lavfi -i testsrc2=size=960x540 \
 -f lavfi -i aevalsrc="sin(0*2*PI*t)" \
