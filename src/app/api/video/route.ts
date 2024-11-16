@@ -14,19 +14,19 @@ function toTime(totalSeconds?: number | null) {
     .map(v => v < 10 ? "0" + v : v)
     .join(":");
 }
- 
+
 export async function GET(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
   const seek = Number.parseFloat(req.nextUrl.searchParams.get('seek') ?? '0') || 0;
-  
+
   if (!bucket) {
     return Response.json(
       { success: false, message: 'no bucket' },
       { status: 404 },
     );
   }
-  
+
   if (!path) {
     return Response.json(
       { success: false, message: 'no path' },
@@ -68,7 +68,8 @@ export async function GET(req: NextRequest) {
       .outputFormat('mp4')
       .seek(toTime(seek))
       // .seekOutput(toTime(seek))
-      .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
+      // .outputOptions(["-c:v", "libx264", "-pix_fmt", "yuv420p", '-movflags', 'isml+frag_keyframe'])
+      .outputOptions(['-movflags', 'isml+frag_keyframe'])
       .on('start', (commandLine) => {
         console.log('Spawned Ffmpeg with command: ' + commandLine);
       })
@@ -99,11 +100,11 @@ export async function GET(req: NextRequest) {
         //
       }
     });
-  
+
     const headers = new Headers();
-    
+
     headers.set("Content-Type", "video/mp4");
-    
+
     return new NextResponse(stream as any, {
       status: 200,
       statusText: "OK",

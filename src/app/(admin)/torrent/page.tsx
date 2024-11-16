@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput} from '@gravity-ui/uikit';
+import { Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput } from '@gravity-ui/uikit';
 import { ModalTorrent, ModalTorrentRef } from "@/app/modals/modal-torrent";
 
 const DataTable = withTableActions(Table);
@@ -20,12 +20,12 @@ const columns: TableColumnConfig<TableDataItem>[] = [
     name: 'Скорость',
   },
   {
-    id: 'downloadedPercent',
-    name: 'Скачка',
-  },
-  {
     id: 'uploadedPercent',
     name: 'Загрузка',
+  },
+  {
+    id: 'downloadedPercent',
+    name: 'Скачка',
   },
 ];
 
@@ -89,11 +89,11 @@ export default function Home() {
       files: new Map(),
     };
     setData(data => [...data, item]);
-    
+
     const reader = response.body
       .pipeThrough(new TextDecoderStream())
       .getReader();
-  
+
     while (true) {
       const { value, done } = await reader.read();
 

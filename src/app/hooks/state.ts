@@ -32,15 +32,15 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
 
       setLoading(false);
       setInited(true);
-    
+
       if (!response.body) return;
-    
+
       const reader = response.body
         .pipeThrough(new TextDecoderStream())
         .getReader();
-      
-        controllState.reader = reader;
-    
+
+      controllState.reader = reader;
+
       while (true) {
         const { value, done } = await reader.read();
 
@@ -49,7 +49,11 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
         }
 
         if (value) {
-          fn?.(value);
+          try {
+            fn?.(value);
+          } catch (error) {
+            //
+          }
         }
       }
     } catch (error) {
@@ -211,7 +215,7 @@ export const useTorrentState = (body?: any) => {
   const [state, setState] = useState<TorrentState>({});
   const serverState = useServerState("/api/torrent/state/get", body, value => {
     setState(JSON.parse(value));
-  }, );
+  },);
 
   const apply = async (state: State) => {
     const response = await fetch("/api/video/state/set", {
