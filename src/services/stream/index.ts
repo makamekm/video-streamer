@@ -132,7 +132,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
 
     while (true) {
         await new Promise(r => setTimeout(r, 1000));
-        const files = await $`ls -rf ./${OUT_TMP_FOLDER}`;
+        const files = await $`ls ./${OUT_TMP_FOLDER}`;
         if (files.toString().includes(OUT_TMP_FILE_STREAM)) {
             break;
         }
@@ -146,7 +146,7 @@ async function clearTmpJob() {
         try {
             await new Promise(r => setTimeout(r, 10000));
             const text = (await $`cat ${OUT_TMP_STREAM} || echo ''`).toString();
-            const files = (await $`ls -rf ./${OUT_TMP_FOLDER}`).toString().split('\n').filter(f => OUT_TS_REGEXP.test(f));
+            const files = (await $`ls ./${OUT_TMP_FOLDER}`).toString().split('\n').filter(f => OUT_TS_REGEXP.test(f));
 
             for (const file of files) {
                 if (!text.includes(file)) {
