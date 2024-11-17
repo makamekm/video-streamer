@@ -165,7 +165,8 @@ async function clearTmp() {
     clearTmpJob();
 }
 
-function createStream(webStream: Readable, onEnd?: Function) {
+async function createStream(onEnd?: Function) {
+    const webStream = await createWebStream("http://localhost:3000/stream");
     const command = ffmpeg()
         .input(webStream)
         .inputOption(['-re'])
@@ -306,7 +307,6 @@ async function getState(finish = false) {
 async function run() {
     clearTmp();
 
-    const webStream = await createWebStream("http://localhost:3000/stream");
     const webEmptyStream = await createWebStream("http://localhost:3000/empty");
     const webEmptyStreamPass = new PassThrough();
     webEmptyStream.pipe(webEmptyStreamPass);
@@ -359,14 +359,14 @@ async function run() {
         update();
     }, 4000);
 
-    runCommand(webStream);
+    await runCommand();
 }
 
-function runCommand(webStream: Readable) {
+async function runCommand() {
     let command: ffmpeg.FfmpegCommand;
 
-    command = createStream(webStream, () => {
-        runCommand(webStream);
+    command = await createStream(() => {
+        runCommand();
     });
 
     command.run();
