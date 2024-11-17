@@ -160,6 +160,7 @@ async function clearTmpJob() {
 }
 
 async function clearTmp() {
+    await $`killall chrome`;
     await $`rm -rf ./${OUT_TMP_FOLDER}`;
     clearTmpJob();
 }
