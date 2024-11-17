@@ -230,7 +230,7 @@ async function createStream(onEnd?: Function) {
             onEnd?.();
             console.error('Error:', err.message);
             console.error(err);
-            // webStream?.destroy();
+            webStream?.destroy();
             // process.exit(1);
         })
         .on('progress', async (progress) => {
