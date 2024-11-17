@@ -3,8 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVideoState } from "@/app/hooks/state";
 import { Spin } from "@gravity-ui/uikit";
-
-import './green.scss';
+import HLSPlayer from "@/app/components/hls-player";
 
 export default function MdFile() {
   const player = useRef<HTMLVideoElement>(null);
@@ -114,16 +113,25 @@ export default function MdFile() {
 
   return (
     <div className="relative flex items-center justify-center h-[100vh] w-[100wh]">
-      {/* <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 text-white">
+      <div className="absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 text-white">
         <div className="flex items-center gap-4">
-          <div className="px-16 py-8 text-white bg-black text-3xl font-bold">КОЛХОЗ ******* ТВ</div>
-        </div>
-      </div> */}
-      <div className="absolute left-4 top-4 text-white">
-        <div className="flex items-center gap-4">
-          <div className="px-16 py-8 text-white bg-black text-3xl font-bold">КОЛХОЗ ******* ТВ</div>
+          <Spin />
+          <div>Загрузка</div>
         </div>
       </div>
+      {!url.src
+        ? null
+        : <HLSPlayer
+          key={url.src}
+          ref={player}
+          className="relative w-full h-full pointer-events-none"
+          width="100%"
+          height="100%"
+          autoPlay={state.isPlaying}
+          muted={false}
+          controls={false}
+          manifest={"http://localhost:3002/sdfsdf/index.m3u8"}
+        />}
     </div>
   );
 }

@@ -42,7 +42,8 @@
     "rxjs": "^7.8.1",
     "sass": "^1.80.6",
     "torrent-stream": "^1.2.1",
-    "wildcard": "^2.0.1"
+    "wildcard": "^2.0.1",
+    "zx": "^8.2.2"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",

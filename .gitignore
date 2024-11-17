@@ -2,6 +2,10 @@
 .idea
 .env
 .next
+*.sock
 
 node_modules
 /tmp
+
+/out.m3u8
+/out*.ts

@@ -1,159 +1,368 @@
 import 'dotenv/config';
 
-import ffmpeg from "fluent-ffmpeg"
-const { StreamInput } = require('fluent-ffmpeg-multistream')
-import { Readable, Transform } from "node:stream"
+import { $ } from 'zx';
+import ffmpeg from "fluent-ffmpeg";
+import { PassThrough, Readable } from "node:stream";
 import { launch, getStream } from "puppeteer-stream";
 import { executablePath } from "puppeteer";
 import { resolve } from 'path';
-import { createWriteStream } from "fs";
 import { getS3 } from "../../app/api/storage";
+import { nextVideo, readJSON } from '../../app/api/read';
+import { State, Video } from '../../app/state';
 
-async function run() {
-    if (process.env.A) {
-        const bucket = "stream-video";
-        const path = "videos/Голый пистолет (The Naked Gun - From the Files of Police Squad!) HDRip-AVC [by ale_x2008].mkv";
+const WIDTH = 1920;
+const HEIGHT = 1080;
+// width: 1600,
+// height: 900,
+const OUT_TMP_FOLDER = 'tmp';
+const OUT_TMP_FILE_STREAM = `out.m3u8`;
+const OUT_TMP_STREAM = `${OUT_TMP_FOLDER}/${OUT_TMP_FILE_STREAM}`;
+const OUT_TS_REGEXP = /^out\d+\.ts$/;
+const S3_BUCKET = process.env.STORAGE_BUCKET;
+const VIDEO_BITRATE = '5000k';
+const AUDIO_BITRATE = '128k';
+const FRAMERATE = '24';
+const STATE_PATH = 'state.json';
 
-        const s3 = await getS3();
-        const cmd = await s3.getObject({
-            Bucket: bucket!,
-            Key: path,
-        });
-        const inputWebStream = cmd.Body?.transformToWebStream();
-        const inputStream = Readable.fromWeb(inputWebStream as any);
+async function createWebStream(url: string) {
+    const browser = await launch({
+        executablePath: executablePath(),
+        headless: "new",
+        userDataDir: resolve(`./${OUT_TMP_FOLDER}/chrome_${(Math.random() * 1_000_000).toFixed()}`),
+        defaultViewport: {
+            width: WIDTH,
+            height: HEIGHT,
+        },
+        // args: ['--enable-gpu', '--no-sandbox'],
+        args: ['--no-sandbox'],
+    });
 
-        const command1 = ffmpeg()
-            .input(inputStream)
+    const page = await browser.newPage();
+    await page.goto(url);
+    return await getStream(page, {
+        audio: true,
+        video: true,
+        mimeType: 'video/webm;codecs=vp8',
+        streamConfig: {
+            immediateResume: true,
+        },
+        frameSize: 30,
+    });
+}
+
+function toTime(totalSeconds?: number | null) {
+    totalSeconds = totalSeconds ?? 0;
+    const hours = Math.floor(totalSeconds / 3600);
+    totalSeconds %= 3600;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds % 60);
+    return [hours, minutes, seconds]
+        .map(v => v < 10 ? "0" + v : v)
+        .join(":");
+}
+
+async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress?: Function) {
+    const cmd = new Promise<ffmpeg.FfmpegCommand>(async r => {
+        let resolved = false;
+        let command: ffmpeg.FfmpegCommand;
+
+        command = ffmpeg()
+            .input(stream)
             .inputOption(['-re'])
-            // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
-            .output("rtmp://localhost:1935/a", { end: true })
-            .outputFormat('flv')
-            .outputOptions(['-c:v', 'h264', '-b:v', '5000k', '-framerate', '30', '-maxrate', '5000k', '-bufsize', '6000k', '-g', '50', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-threads', '0', '-s', '1600x900', '-preset', 'ultrafast', '-tune', 'zerolatency', '-movflags', 'frag_keyframe+empty_moov', '-flvflags', 'no_duration_filesize'])
+            .format('hls')
+            .output(OUT_TMP_STREAM, { end: false })
+            .addOutputOptions([
+                '-c:v',
+                'libx264',
+                '-preset',
+                'ultrafast',
+                '-tune',
+                'zerolatency',
+                '-movflags',
+                'isml+frag_keyframe+empty_moov+live',
+                '-hls_list_size',
+                '4',
+                '-hls_flags',
+                'delete_segments+append_list+omit_endlist',
+                '-f',
+                'hls',
+                '-hls_time',
+                '4',
+                // '-hls_flags',
+                // 'single_file',
+                '-hls_playlist_type',
+                'event',
+                // '-flvflags',
+                // 'no_duration_filesize',
+                '-s',
+                `${HEIGHT}x${WIDTH}`,
+                '-framerate',
+                FRAMERATE,
+                '-b:v',
+                VIDEO_BITRATE,
+                '-b:a',
+                AUDIO_BITRATE,
+            ])
+            .on('codecData', async (commandLine) => {
+            })
             .on('start', (commandLine) => {
                 console.log('Spawned Ffmpeg with command: ' + commandLine);
             })
             .on('error', (err) => {
                 console.error('Error:', err.message);
                 console.error(err);
-            })
-            .on('progress', (progress) => {
-                console.log(progress.timemark);
-            })
-            .on('end', () => {
-                console.log("end!");
-            });
-
-        command1.run();
-    }
-
-    if (process.env.B) {
-        const browser = await launch({
-            executablePath: executablePath(),
-            headless: "new",
-            userDataDir: resolve("./tmp/chrome_" + (Math.random() * 1_000_000).toFixed()),
-            defaultViewport: {
-                // width: 640,
-                // height: 480,
-                // width: 1920,
-                // height: 1080,
-                width: 1600,
-                height: 900,
-            },
-            // args: ['--enable-gpu', '--no-sandbox'],
-            args: ['--no-sandbox'],
-        });
-
-        const page = await browser.newPage();
-        // await page.goto("http://localhost:3000/stream");
-        await page.goto("http://localhost:3000/");
-        const webStream = await getStream(page, { audio: true, video: true });
-
-        // const file = createWriteStream(resolve("./test.webm"));
-
-        // stream.pipe(file);
-        // npm run build && npm run start
-        // const command = ffmpeg()
-        //     .input(stream)
-        //     .inputOption(['-re'])
-        //     .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
-        //     .outputFormat('flv')
-        //     .outputOptions(['-c:v', 'h264', '-preset', 'veryfast', '-b:v', '8000k', '-framerate', '30'])
-        //     .on('start', (commandLine) => {
-        //         console.log('Spawned Ffmpeg with command: ' + commandLine);
-        //     })
-        //     .on('error', (err) => {
-        //         console.error('Error:', err.message);
-        //         console.error(err);
-        //         stream.destroy(err);
-        //     })
-        //     .on('progress', (progress) => {
-        //         // console.log(JSON.stringify(progress, null, 2));
-        //     })
-        //     .on('end', () => {
-        //         // console.log('Transcoding finished');
-        //     });
-
-        // command.run();
-
-        // const stream = new Transform({
-        //     transform(chunk, _encoding, callback) {
-        //         this.push(chunk);
-        //         callback();
-        //     },
-        // });
-
-        const command2 = ffmpeg()
-            .input(webStream)
-            .inputOption(['-re'])
-            // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
-            .output("rtmp://localhost:1935/b")
-            // .videoCodec('libx264')
-            // .size('1600x900')
-            // .flvmeta()
-            .format('flv')
-            // .inputFPS(25)
-            // .videoBitrate('900k')
-            // .audioCodec('libmp3lame')
-            // .audioBitrate(128)
-            // .addInputOption('-f gdigrab')
-            // .addInputOption('-f dshow')
-            // .addInputOption('-i video="screen-capture-recorder"')
-            // .addInputOption('-c:a aac')
-            // .addInputOption('-ar 44100')libvpx -pix_fmt yuva420p
-            .outputOptions(['-c:v', 'libx264', '-pix_fmt', 'yuva420p', '-b:v', '5000k', '-framerate', '30', '-maxrate', '5000k', '-bufsize', '6000k', '-g', '50', '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100', '-threads', '0', '-s', '1600x900', '-preset', 'ultrafast', '-tune', 'zerolatency', '-movflags', 'frag_keyframe+empty_moov', '-flvflags', 'no_duration_filesize'])
-            // .outputOptions(['-c:v', 'h264', '-preset', 'veryfast', '-b:v', '8000k', '-framerate', '30'])
-            .on('start', (commandLine) => {
-                console.log('Spawned Ffmpeg with command: ' + commandLine);
-            })
-            .on('error', (err) => {
-                console.error('Error:', err.message);
-                console.error(err);
-                webStream?.destroy();
             })
             .on('progress', async (progress) => {
-                console.log(progress.timemark, await page.title());
+                if (!resolved) {
+                    resolved = true;
+                    r(command);
+                }
+                onProgress?.(progress.timemark);
             })
             .on('end', () => {
+                onEnd?.();
                 console.log("end!");
             });
 
-        command2.run();
+        command.run();
+    });
+
+    await cmd;
+
+    while (true) {
+        await new Promise(r => setTimeout(r, 1000));
+        const files = await $`ls -rf ./${OUT_TMP_FOLDER}`;
+        if (files.toString().includes(OUT_TMP_FILE_STREAM)) {
+            break;
+        }
     }
 
-    // ffmpeg -re -i "rtmp://localhost:1935/a" -i "rtmp://localhost:1935/b" -f flv -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1" -vsync vfr -b:v 5000k -framerate 30 -maxrate 5000k -bufsize 6000k -g 50 -c:a aac -b:a 128k -ac 2 -ar 44100 -threads 0 -s 1600x900 -c:v h264 -preset ultrafast -tune zerolatency -movflags frag_keyframe+empty_moov -flvflags no_duration_filesize "rtmp://localhost:1935/c"
-    // ffmpeg -re -i "http://localhost:3002/a/index.m3u8" -i "http://localhost:3002/b/index.m3u8" -f flv -filter_complex "overlay" -b:v 5000k -framerate 30 -maxrate 5000k -bufsize 6000k -g 50 -c:a aac -b:a 128k -ac 2 -ar 44100 -threads 0 -s 1600x900 -c:v h264 -preset ultrafast -tune zerolatency -movflags frag_keyframe+empty_moov -flvflags no_duration_filesize "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy"
+    return await cmd;
+}
 
-    // const start = async () => {
-    //     await stream.destroy();
-    //     file.close();
+async function clearTmpJob() {
+    while (true) {
+        try {
+            await new Promise(r => setTimeout(r, 10000));
+            const text = (await $`cat ${OUT_TMP_STREAM} || echo ''`).toString();
+            const files = (await $`ls -rf ./${OUT_TMP_FOLDER}`).toString().split('\n').filter(f => OUT_TS_REGEXP.test(f));
 
-    //     console.log("finished");
+            for (const file of files) {
+                if (!text.includes(file)) {
+                    await $`rm -rf ./${OUT_TMP_FOLDER}/${file}`
+                }
+            }
+        } catch (error) {
+            //
+        }
+    }
+}
 
-    //     await browser.close();
-    //     process.exit(0);
-    // };
+async function clearTmp() {
+    await $`rm -rf ./${OUT_TMP_FOLDER}`;
+    clearTmpJob();
+}
 
-    // setTimeout(start, 1000 * 10);
+function createStream(webStream: Readable, onEnd?: Function) {
+    const command = ffmpeg()
+        .input(webStream)
+        .inputOption(['-re'])
+        .input(OUT_TMP_STREAM)
+        .inputOption(['-re'])
+        .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        // .flvmeta()
+        .format('flv')
+        .complexFilter([
+            {
+                filter: `scale=${HEIGHT}:${WIDTH}`,
+                inputs: "[0:v]",
+                outputs: "[ckoutsize]",
+            },
+            {
+                filter: `scale=${HEIGHT}:${WIDTH}`,
+                inputs: "[1:v]",
+                outputs: "[outsize]",
+            },
+            {
+                filter: "colorkey=0x00FF00:0.45:0.1:",
+                inputs: "[ckoutsize]",
+                outputs: "[ckout]",
+            },
+            {
+                filter: "overlay",
+                inputs: "[outsize][ckout]",
+                outputs: "[out]",
+            },
+        ])
+        .addOutputOptions([
+            '-c:v',
+            'libx264',
+            '-preset',
+            'ultrafast',
+            // '-filter_complex',
+            // "'[1:v]colorkey=0x00FF00:0.3:0.2:[ckout];[0:v][ckout]overlay[out]'",
+            '-map',
+            '[out]',
+            '-map',
+            '1:a?',
+            '-tune',
+            'zerolatency',
+            '-movflags',
+            'isml+frag_keyframe+empty_moov+live',
+            '-flvflags',
+            'no_duration_filesize',
+            '-s',
+            `${HEIGHT}x${WIDTH}`,
+            '-framerate',
+            FRAMERATE,
+            '-b:v',
+            VIDEO_BITRATE,
+            '-b:a',
+            AUDIO_BITRATE,
+        ])
+        .on('start', (commandLine) => {
+            console.log('Spawned Ffmpeg with command: ' + commandLine);
+        })
+        .on('error', (err) => {
+            console.error('Error:', err.message);
+            console.error(err);
+            webStream?.destroy();
+            process.exit(1);
+        })
+        .on('progress', async (progress) => {
+            console.log("command", progress.timemark);
+        })
+        .on('end', () => {
+            onEnd?.();
+            console.log("end!");
+            process.exit(1);
+        });
+
+    return command;
+}
+
+async function applyEvents(state: State) {
+    let changed = false;
+    let event = state.events?.shift();
+
+    if (event != null) {
+        //   await apply({
+        //     events: state.events,
+        //   });
+        changed = true;
+    }
+
+    while (event != null) {
+        const [type, ...args] = event;
+        switch (type) {
+            case 'reload':
+                //   window.location.href = window.location.href;
+                break;
+            case 'update':
+                //   setState(args[0]);
+                //   setCounter(counter + 1);
+                break;
+            case 'refresh':
+                //   setCounter(counter + 1);
+                break;
+            default:
+                console.error('Not event implemented', ...event);
+        }
+
+        event = state.events?.shift();
+        if (event != null) {
+            // await apply({
+            //   events: [],
+            // });
+            changed = true;
+        }
+    }
+
+    return {
+        state,
+        changed,
+    };
+}
+
+async function getState(finish = false) {
+    // index = (index + 1) % paths.length;
+
+    let state = await readJSON<State>(STATE_PATH, {
+        events: [],
+        played: [],
+    }, S3_BUCKET);
+
+    state = await nextVideo(state, S3_BUCKET!, {
+        finish,
+    });
+
+    // state = await nextVideo(state, S3_BUCKET!, {
+    //     finish: true,
+    // });
+
+    return {
+        state,
+        force: false,
+    };
+}
+
+async function run() {
+    clearTmp();
+
+    const webStream = await createWebStream("http://localhost:3000/stream");
+    const webEmptyStream = await createWebStream("http://localhost:3000/empty");
+    const webEmptyStreamPass = new PassThrough();
+    webEmptyStream.pipe(webEmptyStreamPass);
+
+    let subCommand = await createSimpleStream(webEmptyStreamPass);
+
+    let fileStream: Readable | null;
+    let currentVideo: Video | null | undefined = null;
+
+    async function update(finish = false) {
+        const { state, force } = await getState(finish);
+
+        if (currentVideo?.id !== state?.video?.id || force) {
+            currentVideo = state?.video;
+
+            if (currentVideo?.key) {
+                const s3 = await getS3();
+                const cmd = await s3.getObject({
+                    Bucket: S3_BUCKET,
+                    Key: currentVideo?.key,
+                });
+
+                fileStream?.destroy();
+                fileStream = null;
+                fileStream = Readable.fromWeb(cmd.Body?.transformToWebStream() as any);
+            } else {
+                fileStream?.destroy();
+                fileStream = null;
+            }
+
+            try {
+                (subCommand as any)?.ffmpegProc.stdin.write('q');
+            } catch (error) {
+                //
+            }
+
+            if (fileStream) {
+                subCommand = await createSimpleStream(fileStream, () => {
+                    //
+                });
+            } else {
+                subCommand = await createSimpleStream(webEmptyStreamPass);
+            }
+        }
+    }
+
+    await update();
+
+    const command = createStream(webStream, () => {
+        update(true);
+    });
+
+    command.run();
 }
 
 run();
