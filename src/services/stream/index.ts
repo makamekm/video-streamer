@@ -13,7 +13,7 @@ import { State, Video } from '../../app/state';
 // width: 1600,
 // height: 900,
 const OUT_TMP_FOLDER = 'tmp';
-const OUT_TMP_FILE_STREAM = `out.m3u8`;
+const OUT_TMP_FILE_STREAM = 'out.m3u8';
 const OUT_TMP_STREAM = `${OUT_TMP_FOLDER}/${OUT_TMP_FILE_STREAM}`;
 const OUT_TS_REGEXP = /^out\d+\.ts$/;
 const S3_BUCKET = process.env.STORAGE_BUCKET;
