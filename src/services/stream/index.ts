@@ -96,7 +96,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 // '-flvflags',
                 // 'no_duration_filesize',
                 '-s',
-                `${HEIGHT}x${WIDTH}`,
+                `${WIDTH}x${HEIGHT}`,
                 '-framerate',
                 FRAMERATE,
                 '-b:v',
@@ -175,12 +175,12 @@ function createStream(webStream: Readable, onEnd?: Function) {
         .format('flv')
         .complexFilter([
             {
-                filter: `scale=${HEIGHT}:${WIDTH}`,
+                filter: `scale=${WIDTH}:${HEIGHT}`,
                 inputs: "[0:v]",
                 outputs: "[ckoutsize]",
             },
             {
-                filter: `scale=${HEIGHT}:${WIDTH}`,
+                filter: `scale=${WIDTH}:${HEIGHT}`,
                 inputs: "[1:v]",
                 outputs: "[outsize]",
             },
@@ -213,7 +213,7 @@ function createStream(webStream: Readable, onEnd?: Function) {
             '-flvflags',
             'no_duration_filesize',
             '-s',
-            `${HEIGHT}x${WIDTH}`,
+            `${WIDTH}x${HEIGHT}`,
             '-framerate',
             FRAMERATE,
             '-b:v',
