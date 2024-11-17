@@ -285,8 +285,6 @@ async function applyEvents(state: State) {
 }
 
 async function getState(finish = false) {
-    // index = (index + 1) % paths.length;
-
     let state = await readJSON<State>(STATE_PATH, {
         events: [],
         played: [],
@@ -295,10 +293,6 @@ async function getState(finish = false) {
     state = await nextVideo(state, S3_BUCKET!, {
         finish,
     });
-
-    // state = await nextVideo(state, S3_BUCKET!, {
-    //     finish: true,
-    // });
 
     return {
         state,
@@ -361,6 +355,10 @@ async function run() {
     const command = createStream(webStream, () => {
         update(true);
     });
+
+    setInterval(() => {
+        update();
+    }, 4000);
 
     command.run();
 }
