@@ -318,6 +318,7 @@ async function run() {
 
     async function update(finish = false) {
         const { state, force } = await getState(finish);
+        console.log(state?.video);
 
         if (currentVideo?.id !== state?.video?.id || force) {
             currentVideo = state?.video;
