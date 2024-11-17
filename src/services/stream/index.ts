@@ -10,8 +10,6 @@ import { getS3 } from "../../app/api/storage";
 import { nextVideo, readJSON } from '../../app/api/read';
 import { State, Video } from '../../app/state';
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
 // width: 1600,
 // height: 900,
 const OUT_TMP_FOLDER = 'tmp';
@@ -19,10 +17,13 @@ const OUT_TMP_FILE_STREAM = `out.m3u8`;
 const OUT_TMP_STREAM = `${OUT_TMP_FOLDER}/${OUT_TMP_FILE_STREAM}`;
 const OUT_TS_REGEXP = /^out\d+\.ts$/;
 const S3_BUCKET = process.env.STORAGE_BUCKET;
+const STATE_PATH = 'state.json';
+
+const WIDTH = 1920;
+const HEIGHT = 1080;
 const VIDEO_BITRATE = '5000k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
-const STATE_PATH = 'state.json';
 
 async function createWebStream(url: string) {
     const browser = await launch({
