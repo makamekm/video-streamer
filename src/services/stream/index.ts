@@ -225,10 +225,11 @@ function createStream(webStream: Readable, onEnd?: Function) {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
         })
         .on('error', (err) => {
+            onEnd?.();
             console.error('Error:', err.message);
             console.error(err);
-            webStream?.destroy();
-            process.exit(1);
+            // webStream?.destroy();
+            // process.exit(1);
         })
         .on('progress', async (progress) => {
             console.log("command", progress.timemark);
@@ -343,7 +344,7 @@ async function run() {
 
             if (fileStream) {
                 subCommand = await createSimpleStream(fileStream, () => {
-                    //
+                    setTimeout(() => update(true), 0);
                 });
             } else {
                 subCommand = await createSimpleStream(webEmptyStreamPass);
@@ -353,13 +354,19 @@ async function run() {
 
     await update();
 
-    const command = createStream(webStream, () => {
-        update(true);
-    });
-
     setInterval(() => {
         update();
     }, 4000);
+
+    runCommand(webStream);
+}
+
+function runCommand(webStream: Readable) {
+    let command: ffmpeg.FfmpegCommand;
+
+    command = createStream(webStream, () => {
+        runCommand(webStream);
+    });
 
     command.run();
 }
