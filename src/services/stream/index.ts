@@ -81,18 +81,22 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 'zerolatency',
                 '-movflags',
                 'isml+frag_keyframe+empty_moov+live',
-                '-hls_list_size',
-                '4',
-                '-hls_flags',
-                'delete_segments+append_list+omit_endlist',
                 '-f',
                 'hls',
+                '-hls_list_size',
+                '10',
+                '-hls_flags',
+                'delete_segments+append_list+omit_endlist+independent_segments',
                 '-hls_time',
-                '4',
+                '2',
+                '-hls_segment_type',
+                'mpegts',
                 // '-hls_flags',
                 // 'single_file',
                 '-hls_playlist_type',
                 'event',
+                '-hls_fmp4_init_resend',
+                '1',
                 // '-flvflags',
                 // 'no_duration_filesize',
                 '-s',
@@ -162,7 +166,7 @@ async function clearTmpJob() {
 async function clearTmp() {
     await $`killall chrome || true`;
     await $`rm -rf ./${OUT_TMP_FOLDER} || true`;
-    clearTmpJob();
+    // clearTmpJob();
 }
 
 async function createStream(onEnd?: Function) {
