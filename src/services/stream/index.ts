@@ -435,6 +435,8 @@ async function run() {
                 subCommand = await createSimpleStream(webEmptyStreamPass);
                 // subCommand.input(webEmptyStreamPass);
             }
+
+            runCommand();
         }
     }
 
@@ -447,8 +449,14 @@ async function run() {
     await runCommand();
 }
 
+let command: ffmpeg.FfmpegCommand;
+
 async function runCommand() {
-    let command: ffmpeg.FfmpegCommand;
+    try {
+        command?.kill("SIGTERM");
+    } catch (error) {
+        //
+    }
 
     command = await createStream(() => {
         runCommand();
