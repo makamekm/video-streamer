@@ -419,6 +419,9 @@ async function run() {
             //     //
             // }
 
+            await $`rm -rf ./${OUT_TMP_FOLDER}/*.ts || true`;
+            await $`rm -rf ./${OUT_TMP_STREAM} || true`;
+
             if (fileStream) {
                 // fileStream.pipe(webEmptyStreamPass);
 
