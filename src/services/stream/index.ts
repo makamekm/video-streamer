@@ -2,6 +2,7 @@ import 'dotenv/config';
 
 import { $ } from 'zx';
 import ffmpeg from "fluent-ffmpeg";
+const { StreamInput, StreamOutput } = require('fluent-ffmpeg-multistream')
 import { PassThrough, Readable } from "node:stream";
 import { launch, getStream } from "puppeteer-stream";
 import { executablePath } from "puppeteer";
@@ -69,34 +70,49 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
 
         command = ffmpeg()
             .input(stream)
-            .inputOption(['-re'])
+            .inputOptions([
+                '-probesize',
+                '10M',
+                '-analyzeduration',
+                '5000000',
+                '-rw_timeout',
+                '5000000',
+                '-re',
+            ])
             .format('hls')
             .output(OUT_TMP_STREAM, { end: false })
             .addOutputOptions([
                 '-c:v',
                 'libx264',
                 '-preset',
-                'ultrafast',
-                '-tune',
-                'zerolatency',
+                'veryfast',
+                // '-tune',
+                // 'zerolatency',
                 '-movflags',
                 'isml+frag_keyframe+empty_moov+live',
                 '-f',
                 'hls',
                 '-hls_list_size',
-                '10',
+                '5',
                 '-hls_flags',
-                'delete_segments+append_list+omit_endlist+independent_segments',
+                'delete_segments+append_list+omit_endlist+discont_start',
+                // 'delete_segments+append_list+omit_endlist+independent_segments',
                 '-hls_time',
-                '2',
-                '-hls_segment_type',
-                'mpegts',
+                '10',
+                '-hls_delete_threshold',
+                '1',
+                // '-hls_segment_type',
+                // 'mpegts',
                 // '-hls_flags',
                 // 'single_file',
                 '-hls_playlist_type',
                 'event',
                 '-hls_fmp4_init_resend',
                 '1',
+                // '-strict',
+                // '-2',
+                '-start_number',
+                '0',
                 // '-flvflags',
                 // 'no_duration_filesize',
                 '-s',
@@ -107,6 +123,14 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 VIDEO_BITRATE,
                 '-b:a',
                 AUDIO_BITRATE,
+                '-bufsize',
+                '10000k',
+                '-crf',
+                '20',
+                '-ar',
+                '44100',
+                '-ac',
+                '2',
             ])
             .on('codecData', async (commandLine) => {
             })
@@ -123,6 +147,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                     r(command);
                 }
                 onProgress?.(progress.timemark);
+                console.log("subcommand", progress.timemark);
             })
             .on('end', () => {
                 onEnd?.();
@@ -173,9 +198,25 @@ async function createStream(onEnd?: Function) {
     const webStream = await createWebStream("http://localhost:3000/stream");
     const command = ffmpeg()
         .input(webStream)
-        .inputOption(['-re'])
+        .inputOptions([
+            '-probesize',
+            '10M',
+            '-analyzeduration',
+            '5000000',
+            '-rw_timeout',
+            '5000000',
+            '-re',
+        ])
         .input(OUT_TMP_STREAM)
-        .inputOption(['-re'])
+        .inputOptions([
+            '-probesize',
+            '10M',
+            '-analyzeduration',
+            '5000000',
+            '-rw_timeout',
+            '5000000',
+            '-re',
+        ])
         .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         // .flvmeta()
         .format('flv')
@@ -202,18 +243,22 @@ async function createStream(onEnd?: Function) {
             },
         ])
         .addOutputOptions([
+            '-pix_fmt',
+            'yuv420p',
             '-c:v',
             'libx264',
             '-preset',
-            'ultrafast',
+            'veryfast',
             // '-filter_complex',
             // "'[1:v]colorkey=0x00FF00:0.3:0.2:[ckout];[0:v][ckout]overlay[out]'",
             '-map',
             '[out]',
             '-map',
             '1:a?',
-            '-tune',
-            'zerolatency',
+            //'-tune',
+            //'zerolatency',
+            '-flags',
+            '+global_header',
             '-movflags',
             'isml+frag_keyframe+empty_moov+live',
             '-flvflags',
@@ -226,6 +271,20 @@ async function createStream(onEnd?: Function) {
             VIDEO_BITRATE,
             '-b:a',
             AUDIO_BITRATE,
+            '-bufsize',
+            '10000k',
+            '-g',
+            '60',
+            '-crf',
+            '21',
+            '-ar',
+            '44100',
+            '-ac',
+            '2',
+            '-reconnect', '1',
+            '-reconnect_at_eof', '1',
+            '-reconnect_streamed', '1',
+            '-reconnect_delay_max', '2',
         ])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
@@ -315,17 +374,19 @@ async function run() {
     const webEmptyStreamPass = new PassThrough();
     webEmptyStream.pipe(webEmptyStreamPass);
 
-    let subCommand = await createSimpleStream(webEmptyStreamPass);
+    let subCommand = await createSimpleStream(webEmptyStreamPass, () => {
+        // setTimeout(() => update(true), 0);
+    });
 
     let fileStream: Readable | null;
     let currentVideo: Video | null | undefined = null;
 
     async function update(finish = false) {
         const { state, force } = await getState(finish);
-        console.log(state?.video);
 
         if (currentVideo?.id !== state?.video?.id || force) {
             currentVideo = state?.video;
+            console.log(currentVideo);
 
             if (currentVideo?.key) {
                 const s3 = await getS3();
@@ -334,26 +395,45 @@ async function run() {
                     Key: currentVideo?.key,
                 });
 
+                // webEmptyStream?.unpipe();
+                fileStream?.unpipe();
                 fileStream?.destroy();
                 fileStream = null;
                 fileStream = Readable.fromWeb(cmd.Body?.transformToWebStream() as any);
             } else {
+                // webEmptyStream?.unpipe();
+                fileStream?.unpipe();
                 fileStream?.destroy();
                 fileStream = null;
             }
 
             try {
-                (subCommand as any)?.ffmpegProc.stdin.write('q');
+                subCommand?.kill("SIGTERM");
             } catch (error) {
                 //
             }
+            // try {
+            //     // (subCommand as any)?.ffmpegProc.stdin.write('q');
+            // } catch (error) {
+            //     console.log(error);
+            //     //
+            // }
 
             if (fileStream) {
+                // fileStream.pipe(webEmptyStreamPass);
+
+                console.log(currentVideo?.key);
+
                 subCommand = await createSimpleStream(fileStream, () => {
                     setTimeout(() => update(true), 0);
                 });
+
+                // subCommand.input(fileStream);
             } else {
+                // webEmptyStream.pipe(webEmptyStreamPass);
+                // fileStream.pipe(webEmptyStreamPass);
                 subCommand = await createSimpleStream(webEmptyStreamPass);
+                // subCommand.input(webEmptyStreamPass);
             }
         }
     }
