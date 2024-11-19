@@ -24,8 +24,8 @@ const columns: TableColumnConfig<TableDataItem>[] = [
     name: 'Загрузка',
   },
   {
-    id: 'downloadedPercent',
-    name: 'Скачка',
+    id: 'downloadPercent',
+    name: 'Статус',
   },
 ];
 

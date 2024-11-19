@@ -1,29 +1,16 @@
 import ffmpeg from "fluent-ffmpeg"
 import { Readable, Transform } from "node:stream"
 import { type NextRequest } from 'next/server';
-import { getS3 } from '@/app/api/storage';
 import { normalizePath } from '@/app/api/path-utils';
- 
+import { getStorage } from "@/app/api/storage";
+
 export async function POST(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
-  
-  const s3 = await getS3();
+
+  const storage = await getStorage();
 
   try {
-    const cmd = await s3.getObject({
-      Bucket: bucket!,
-      Key: path,
-    });
-    const inputWebStream = cmd.Body?.transformToWebStream();
-    const inputStream = Readable.fromWeb(inputWebStream as any);
-
-    const stream = new Transform({
-      transform(chunk, _encoding, callback) {
-        this.push(chunk);
-        callback();
-      },
-    });
+    const inputStream = await storage.read(path!);
 
     const meta: ffmpeg.FfprobeFormat = await new Promise((r, e) => {
       ffmpeg(inputStream)
@@ -35,7 +22,7 @@ export async function POST(req: NextRequest) {
           }
         });
     });
-    
+
     return Response.json(
       {
         duration: meta.duration,

@@ -1,13 +1,15 @@
 import { type NextRequest } from 'next/server';
 import { TorrentState } from '@/app/state';
-import { readJSON } from '@/app/api/read';
+import { getStorage } from '@/app/api/storage';
 
 // Prevents this route's response from being cached on Vercel
 export const dynamic = "force-dynamic";
- 
+
 export async function POST(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = 'torrent.json';
+
+  const storage = await getStorage();
 
   // Obtain the conversation messages from request's body
   // const { messages = [] } = await request.json();
@@ -16,10 +18,10 @@ export async function POST(req: NextRequest) {
   let controller: ReadableStreamDefaultController<any> | null;
 
   const watch = async () => {
-    while(true) {
-      const json = await readJSON<TorrentState>(path, {
-        
-      }, bucket);
+    while (true) {
+      const json = await storage.readJSON<TorrentState>(path, {
+
+      });
       controller?.enqueue(encoder.encode(JSON.stringify(json)));
       if (!controller) break;
       await new Promise(r => setTimeout(r, 2000));

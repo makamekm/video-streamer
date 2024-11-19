@@ -1,8 +1,7 @@
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
 import { PlaylistState } from '@/app/state';
-import { getS3 } from '@/app/api/storage';
-import { readJSON } from '@/app/api/read';
+import { getStorage } from '@/app/api/storage';
 
 export async function POST(req: NextRequest) {
   const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
@@ -16,22 +15,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const s3 = await getS3();
+  const storage = await getStorage();
 
   try {
-    const json = await readJSON<PlaylistState>(path, {}, bucket);
+    const json = await storage.readJSON<PlaylistState>(path, {});
     const state = {
       ...json,
       ...body,
     };
 
-    await s3.putObject({
-      Bucket: bucket,
-      Key: path,
-      ContentType: mime.lookup(path) || undefined,
-      Body: JSON.stringify(state),
-    });
-    
+    await storage.writeJSON(path, state);
+
     return Response.json(
       state,
       {

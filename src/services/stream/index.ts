@@ -2,13 +2,13 @@ import 'dotenv/config';
 
 import { $ } from 'zx';
 import ffmpeg from "fluent-ffmpeg";
-const { StreamInput, StreamOutput } = require('fluent-ffmpeg-multistream')
-import { PassThrough, Readable } from "node:stream";
+const { StreamInput, StreamOutput } = require('fluent-ffmpeg-multistream');
+import { PassThrough, Readable, Transform } from "node:stream";
 import { launch, getStream } from "puppeteer-stream";
 import { executablePath } from "puppeteer";
 import { resolve } from 'path';
-import { getS3 } from "../../app/api/storage";
-import { nextVideo, readJSON } from '../../app/api/read';
+import { getStorage } from "../../app/api/storage";
+import { nextVideo } from '../../app/api/read';
 import { State, Video } from '../../app/state';
 
 // width: 1600,
@@ -17,7 +17,6 @@ const OUT_TMP_FOLDER = 'tmp';
 const OUT_TMP_FILE_STREAM = 'out.m3u8';
 const OUT_TMP_STREAM = `${OUT_TMP_FOLDER}/${OUT_TMP_FILE_STREAM}`;
 const OUT_TS_REGEXP = /^out\d+\.ts$/;
-const S3_BUCKET = process.env.STORAGE_BUCKET;
 const STATE_PATH = 'state.json';
 
 const WIDTH = 1920;
@@ -25,6 +24,7 @@ const HEIGHT = 1080;
 const VIDEO_BITRATE = '5000k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
+const BUFF_SIZE = '10000k';
 
 async function createWebStream(url: string) {
     const browser = await launch({
@@ -77,10 +77,12 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '5000000',
                 '-rw_timeout',
                 '5000000',
+                '-y',
                 '-re',
             ])
             .format('hls')
-            .output(OUT_TMP_STREAM, { end: false })
+            .output(OUT_TMP_STREAM)
+            // .output("rtmp://localhost:1935/sdfsdf")
             .addOutputOptions([
                 '-c:v',
                 'libx264',
@@ -90,31 +92,33 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 // 'zerolatency',
                 '-movflags',
                 'isml+frag_keyframe+empty_moov+live',
+                // '-f', 'dash', '-seg_duration', '2', '-window_size', '5', '-extra_window_size', '2', '-remove_at_exit', '1',
                 '-f',
                 'hls',
                 '-hls_list_size',
-                '5',
+                '10',
                 '-hls_flags',
-                'delete_segments+append_list+omit_endlist+discont_start',
+                'delete_segments+append_list+omit_endlist+program_date_time',
+                // 'delete_segments+append_list+omit_endlist+discont_start',
                 // 'delete_segments+append_list+omit_endlist+independent_segments',
                 '-hls_time',
-                '10',
+                '6',
                 '-hls_delete_threshold',
                 '1',
-                // '-hls_segment_type',
-                // 'mpegts',
+                '-hls_segment_type',
+                'mpegts',
                 // '-hls_flags',
                 // 'single_file',
-                '-hls_playlist_type',
-                'event',
+                // '-hls_playlist_type',
+                // 'event',
                 '-hls_fmp4_init_resend',
                 '1',
-                // '-strict',
-                // '-2',
-                '-start_number',
-                '0',
                 // '-flvflags',
                 // 'no_duration_filesize',
+                '-max_delay',
+                '500000',
+                '-reorder_queue_size',
+                '1024',
                 '-s',
                 `${WIDTH}x${HEIGHT}`,
                 '-framerate',
@@ -124,7 +128,9 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '-b:a',
                 AUDIO_BITRATE,
                 '-bufsize',
-                '10000k',
+                BUFF_SIZE,
+                '-g',
+                '60',
                 '-crf',
                 '20',
                 '-ar',
@@ -194,8 +200,7 @@ async function clearTmp() {
     // clearTmpJob();
 }
 
-async function createStream(onEnd?: Function) {
-    const webStream = await createWebStream("http://localhost:3000/stream");
+async function createStream(webStream: Transform, onEnd?: Function) {
     const command = ffmpeg()
         .input(webStream)
         .inputOptions([
@@ -207,7 +212,9 @@ async function createStream(onEnd?: Function) {
             '5000000',
             '-re',
         ])
+        // .input("http://localhost:8888/sdfsdf/index.m3u8")
         .input(OUT_TMP_STREAM)
+        // .input(StreamInput(fileStream).url)
         .inputOptions([
             '-probesize',
             '10M',
@@ -255,14 +262,18 @@ async function createStream(onEnd?: Function) {
             '[out]',
             '-map',
             '1:a?',
-            //'-tune',
-            //'zerolatency',
+            // '-tune',
+            // 'zerolatency',
             '-flags',
             '+global_header',
             '-movflags',
             'isml+frag_keyframe+empty_moov+live',
             '-flvflags',
             'no_duration_filesize',
+            '-max_delay',
+            '500000',
+            '-reorder_queue_size',
+            '1024',
             '-s',
             `${WIDTH}x${HEIGHT}`,
             '-framerate',
@@ -272,7 +283,7 @@ async function createStream(onEnd?: Function) {
             '-b:a',
             AUDIO_BITRATE,
             '-bufsize',
-            '10000k',
+            BUFF_SIZE,
             '-g',
             '60',
             '-crf',
@@ -293,7 +304,7 @@ async function createStream(onEnd?: Function) {
             onEnd?.();
             console.error('Error:', err.message);
             console.error(err);
-            webStream?.destroy();
+            // webStream?.destroy();
             // process.exit(1);
         })
         .on('progress', async (progress) => {
@@ -352,12 +363,14 @@ async function applyEvents(state: State) {
 }
 
 async function getState(finish = false) {
-    let state = await readJSON<State>(STATE_PATH, {
+    const storage = await getStorage();
+
+    let state = await storage.readJSON<State>(STATE_PATH, {
         events: [],
         played: [],
-    }, S3_BUCKET);
+    });
 
-    state = await nextVideo(state, S3_BUCKET!, {
+    state = await nextVideo(state, storage, {
         finish,
     });
 
@@ -370,13 +383,16 @@ async function getState(finish = false) {
 async function run() {
     clearTmp();
 
+    const webStream = await createWebStream("http://localhost:3000/stream");
     const webEmptyStream = await createWebStream("http://localhost:3000/empty");
     const webEmptyStreamPass = new PassThrough();
     webEmptyStream.pipe(webEmptyStreamPass);
 
-    let subCommand = await createSimpleStream(webEmptyStreamPass, () => {
-        // setTimeout(() => update(true), 0);
-    });
+    let subCommand: ffmpeg.FfmpegCommand;
+
+    // subCommand = await createSimpleStream(webEmptyStreamPass, () => {
+    //     // setTimeout(() => update(true), 0);
+    // });
 
     let fileStream: Readable | null;
     let currentVideo: Video | null | undefined = null;
@@ -389,17 +405,11 @@ async function run() {
             console.log(currentVideo);
 
             if (currentVideo?.key) {
-                const s3 = await getS3();
-                const cmd = await s3.getObject({
-                    Bucket: S3_BUCKET,
-                    Key: currentVideo?.key,
-                });
-
-                // webEmptyStream?.unpipe();
+                const storage = await getStorage();
                 fileStream?.unpipe();
                 fileStream?.destroy();
                 fileStream = null;
-                fileStream = Readable.fromWeb(cmd.Body?.transformToWebStream() as any);
+                fileStream = await storage.read(currentVideo?.key);
             } else {
                 // webEmptyStream?.unpipe();
                 fileStream?.unpipe();
@@ -419,8 +429,8 @@ async function run() {
             //     //
             // }
 
-            await $`rm -rf ./${OUT_TMP_FOLDER}/*.ts || true`;
-            await $`rm -rf ./${OUT_TMP_STREAM} || true`;
+            // await $`rm -rf ./${OUT_TMP_FOLDER}/*.ts || true`;
+            // await $`rm -rf ./${OUT_TMP_STREAM} || true`;
 
             if (fileStream) {
                 // fileStream.pipe(webEmptyStreamPass);
@@ -439,7 +449,7 @@ async function run() {
                 // subCommand.input(webEmptyStreamPass);
             }
 
-            runCommand();
+            // runCommand(fileStream);
         }
     }
 
@@ -449,21 +459,22 @@ async function run() {
         update();
     }, 4000);
 
-    await runCommand();
+    await runCommand(webStream);
 }
 
 let command: ffmpeg.FfmpegCommand;
 
-async function runCommand() {
+async function runCommand(webStream: Transform) {
     try {
         command?.kill("SIGTERM");
     } catch (error) {
         //
     }
 
-    command = await createStream(() => {
-        runCommand();
+    command = await createStream(webStream, () => {
+        runCommand(webStream);
     });
+    // command = await createStream(fileStream, onEnd);
 
     command.run();
 }

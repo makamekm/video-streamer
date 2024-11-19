@@ -1,29 +1,22 @@
 import { type NextRequest } from 'next/server';
 import { State } from '@/app/state';
-import { nextVideo, readJSON, saveJSON } from '@/app/api/read';
- 
+import { nextVideo } from '@/app/api/read';
+import { getStorage } from '@/app/api/storage';
+
 export async function POST(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = 'state.json';
-  const body = await req.json() ?? {};
 
-  if (!bucket) {
-    return Response.json(
-      { success: false, message: 'no bucket' },
-      { status: 404 },
-    );
-  }
-
+  const storage = await getStorage();
   try {
-    let state = await readJSON<State>(path, {
+    let state = await storage.readJSON<State>(path, {
       events: [],
       played: [],
-    }, bucket);
+    });
 
-    state = await nextVideo(state, bucket, {
+    state = await nextVideo(state, storage, {
       finish: true,
     });
-    
+
     return Response.json(
       state,
       {

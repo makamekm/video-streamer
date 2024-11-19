@@ -6,6 +6,8 @@
 
 node_modules
 /tmp
+/torrent-tmp
+/files
 
 /out.m3u8
 /out*.ts

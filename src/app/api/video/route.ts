@@ -1,8 +1,8 @@
 import ffmpeg from "fluent-ffmpeg"
 import { Readable, Transform } from "node:stream"
 import { type NextRequest, NextResponse } from 'next/server';
-import { getS3 } from '@/app/api/storage';
 import { normalizePath } from '@/app/api/path-utils';
+import { getStorage } from "../storage";
 
 function toTime(totalSeconds?: number | null) {
   totalSeconds = totalSeconds ?? 0;
@@ -34,14 +34,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const s3 = await getS3();
+  const storage = await getStorage();
 
   try {
-    const cmd = await s3.getObject({
-      Bucket: bucket!,
-      Key: path,
-    });
-    const inputWebStream = cmd.Body?.transformToWebStream();
+    const inputWebStream = await storage.read(path);
     const inputStream = Readable.fromWeb(inputWebStream as any);
 
     const stream = new Transform({

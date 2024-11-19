@@ -1,20 +1,13 @@
 import { type NextRequest } from 'next/server';
 import * as mime from 'mime-types';
-import { getS3 } from '@/app/api/storage';
+import { getStorage } from '@/app/api/storage';
 import { normalizePath } from '@/app/api/path-utils';
+import { Readable } from 'stream';
 
 export async function POST(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const path = normalizePath(req.nextUrl.searchParams.get('path') ?? '');
   const body = await req.text() || '';
-  
-  if (!bucket) {
-    return Response.json(
-      { success: false, message: 'no bucket' },
-      { status: 404 },
-    );
-  }
-  
+
   if (!path) {
     return Response.json(
       { success: false, message: 'no path' },
@@ -22,16 +15,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const s3 = await getS3();
+  const storage = await getStorage();
 
   try {
-    await s3.putObject({
-      Bucket: bucket!,
-      Key: path,
-      ContentType: mime.lookup(path) || undefined,
-      Body: body!,
-    });
-    
+    storage.write(path, Readable.from([body]));
+
     return Response.json(
       { success: true },
       {
