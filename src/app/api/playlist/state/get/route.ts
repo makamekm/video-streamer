@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   const watch = async () => {
     while (true) {
-      let state = await storage.readJSON<PlaylistState>(pathState, {
+      const state = await storage.readJSON<PlaylistState>(pathState, {
         playlists: [],
       });
 

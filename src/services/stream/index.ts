@@ -67,9 +67,7 @@ function toTime(totalSeconds?: number | null) {
 async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress?: Function) {
     const cmd = new Promise<ffmpeg.FfmpegCommand>(async r => {
         let resolved = false;
-        let command: ffmpeg.FfmpegCommand;
-
-        command = ffmpeg()
+        const command = ffmpeg()
             .input(stream)
             .inputOptions([
                 '-probesize',
