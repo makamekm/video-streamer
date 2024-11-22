@@ -424,7 +424,6 @@ export default function MdFile() {
         </div>
       </div>
       <ModalFromFolder update={(data) => {
-        console.log(data);
         playlist.setState(data);
         setPlaylists(data.playlists ?? playlists);
       }} ref={modalFromFolder} />
