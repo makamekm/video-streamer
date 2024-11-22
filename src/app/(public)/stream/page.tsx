@@ -121,7 +121,7 @@ export default function MdFile() {
       </div> */}
       <div className="absolute left-4 top-4 text-white">
         <div className="flex items-center gap-4">
-          <div className="px-16 py-8 text-white bg-black text-3xl font-bold">Мульт ТВ</div>
+          <div className="px-8 py-4 text-white bg-black text-3xl font-bold">Мульт ТВ</div>
         </div>
       </div>
     </div>
