@@ -19,16 +19,17 @@ export async function POST(req: NextRequest) {
     const videos = await storage.glob(body.path);
 
     state.playlists = state.playlists ?? [];
-    console.log(videos);
 
     state.playlists.push({
       id: rnd(),
       name: body.name ?? '',
-      items: videos.map(file => ({
-        id: rnd(),
-        key: file,
-        type: 'file',
-      }))
+      items: videos
+        .sort((a, b) => a.localeCompare(b))
+        .map(file => ({
+          id: rnd(),
+          key: file,
+          type: 'file',
+        })),
     });
 
     await storage.writeJSON(path, state);
