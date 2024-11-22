@@ -56,7 +56,7 @@ export class LocalStorage implements IStorage {
         let json: any = undefined;
         try {
             const text = await readFile(resolve(LOCAL_PATH, key), "utf-8");
-            json = JSON.parse(text ?? "null");
+            json = JSON.parse(text ?? "{}");
         } catch (error) {
             console.log(error);
         }

@@ -24,6 +24,7 @@ const HEIGHT = 1080;
 const VIDEO_BITRATE = '5000k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
+const GBUFFER = '48';
 const BUFF_SIZE = '10000k';
 
 async function createWebStream(url: string) {
@@ -86,6 +87,8 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
             .addOutputOptions([
                 '-c:v',
                 'libx264',
+                '-c:a',
+                'mp3',
                 '-preset',
                 'veryfast',
                 // '-tune',
@@ -116,7 +119,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 // '-flvflags',
                 // 'no_duration_filesize',
                 '-max_delay',
-                '500000',
+                '5000000',
                 '-reorder_queue_size',
                 '1024',
                 '-s',
@@ -129,8 +132,16 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 AUDIO_BITRATE,
                 '-bufsize',
                 BUFF_SIZE,
+                '-maxrate',
+                VIDEO_BITRATE,
+                '-analyzeduration',
+                '0',
+                '-probesize',
+                '32',
+                '-fflags',
+                '-nobuffer',
                 '-g',
-                '60',
+                GBUFFER,
                 '-crf',
                 '20',
                 '-ar',
@@ -204,10 +215,11 @@ async function createStream(webStream: Transform, onEnd?: Function) {
     const command = ffmpeg()
         .input(webStream)
         .inputOptions([
-            '-probesize',
-            '10M',
-            '-analyzeduration',
-            '5000000',
+            '-y',
+            // '-probesize',
+            // '10M',
+            // '-analyzeduration',
+            // '5000000',
             '-rw_timeout',
             '5000000',
             '-re',
@@ -216,15 +228,18 @@ async function createStream(webStream: Transform, onEnd?: Function) {
         .input(OUT_TMP_STREAM)
         // .input(StreamInput(fileStream).url)
         .inputOptions([
-            '-probesize',
-            '10M',
-            '-analyzeduration',
-            '5000000',
+            '-y',
+            // '-probesize',
+            // '10M',
+            // '-analyzeduration',
+            // '5000000',
             '-rw_timeout',
             '5000000',
             '-re',
         ])
-        .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        .output("rtmp://localhost:1935/sdfsdf")
+        // http://192.168.0.209:/sdfsdf/index.m3u8
         // .flvmeta()
         .format('flv')
         .complexFilter([
@@ -254,6 +269,8 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             'yuv420p',
             '-c:v',
             'libx264',
+            '-c:a',
+            'mp3',
             '-preset',
             'veryfast',
             // '-filter_complex',
@@ -265,13 +282,13 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             // '-tune',
             // 'zerolatency',
             '-flags',
-            '+global_header',
+            '+global_header+low_delay',
             '-movflags',
             'isml+frag_keyframe+empty_moov+live',
             '-flvflags',
             'no_duration_filesize',
             '-max_delay',
-            '500000',
+            '5000000',
             '-reorder_queue_size',
             '1024',
             '-s',
@@ -284,8 +301,16 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             AUDIO_BITRATE,
             '-bufsize',
             BUFF_SIZE,
+            '-maxrate',
+            VIDEO_BITRATE,
+            '-analyzeduration',
+            '0',
+            '-probesize',
+            '32',
+            '-fflags',
+            '-nobuffer',
             '-g',
-            '60',
+            GBUFFER,
             '-crf',
             '21',
             '-ar',
@@ -313,7 +338,7 @@ async function createStream(webStream: Transform, onEnd?: Function) {
         .on('end', () => {
             onEnd?.();
             console.log("end!");
-            process.exit(1);
+            // process.exit(1);
         });
 
     return command;
