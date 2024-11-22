@@ -237,8 +237,8 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             '5000000',
             '-re',
         ])
-        // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
-        .output("rtmp://localhost:1935/sdfsdf")
+        .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        // .output("rtmp://localhost:1935/sdfsdf")
         // http://192.168.0.209:/sdfsdf/index.m3u8
         // .flvmeta()
         .format('flv')
