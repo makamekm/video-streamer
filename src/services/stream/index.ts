@@ -76,11 +76,6 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '5000000',
                 '-rw_timeout',
                 '5000000',
-                '-drop_pkts_on_overflow',
-                '1',
-                '-attempt_recovery',
-                '1',
-                '-recover_any_error 1',
                 '-y',
                 '-re',
             ])
@@ -151,6 +146,11 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '44100',
                 '-ac',
                 '2',
+                '-drop_pkts_on_overflow',
+                '1',
+                '-attempt_recovery',
+                '1',
+                '-recover_any_error 1',
             ])
             .on('codecData', async (commandLine) => {
             })
@@ -223,11 +223,6 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             // '10M',
             // '-analyzeduration',
             // '5000000',
-            '-drop_pkts_on_overflow',
-            '1',
-            '-attempt_recovery',
-            '1',
-            '-recover_any_error 1',
             '-rw_timeout',
             '5000000',
             '-re',
@@ -241,11 +236,6 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             // '10M',
             // '-analyzeduration',
             // '5000000',
-            '-drop_pkts_on_overflow',
-            '1',
-            '-attempt_recovery',
-            '1',
-            '-recover_any_error 1',
             '-rw_timeout',
             '5000000',
             '-re',
@@ -334,6 +324,11 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             '-reconnect_at_eof', '1',
             '-reconnect_streamed', '1',
             '-reconnect_delay_max', '2',
+            '-drop_pkts_on_overflow',
+            '1',
+            '-attempt_recovery',
+            '1',
+            '-recover_any_error 1',
         ])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
