@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Card, DropdownMenu, Loader, Overlay, Select, Switch, TextInput } from '@gravity-ui/uikit';
 import { Equal, Ellipsis, Plus, ArrowRotateLeft, ArrowRight, Play } from '@gravity-ui/icons';
 import {
@@ -23,6 +23,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { usePlaylistState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
 import { Playlist, PlaylistItem } from "@/app/state";
+import { ModalFromFolder, ModalFromFolderRef } from "@/app/modals/modal-from-folder";
 
 function PlaceholderItem(props: {
   item: PlaylistItem;
@@ -80,43 +81,43 @@ function SortableItem(props: {
           <Equal />
         </button>
         <div className="flex-1 flex flex-col gap-2">
-        {
-          props.item.type === 'playlist'
-          ? <Select
-              size="l"
-              placeholder="Плейлист"
-              value={props.item.key != null && !!playlists.find(p => p.id === props.item.key) ? [props.item.key] : []}
-              onUpdate={value => {
-                props.item.key = value[0];
-                props.onChange(props.item);
-              }}
-              options={playlists.map(playlist => ({
-                value: playlist.id,
-                content: playlist.name,
-              }))}
-            />
-          : <>
-            <TextInput
-              size="l"
-              placeholder="Ключ"
-              value={props.item.key}
-              onUpdate={value => {
-                props.item.key = value;
-                props.onChange(props.item);
-              }}
-            />
-            <TextInput
-              size="l"
-              placeholder="Начало сек."
-              type="number"
-              value={String(props.item.initialTime || 0)}
-              onUpdate={value => {
-                props.item.initialTime = Number.parseFloat(value);
-                props.onChange(props.item);
-              }}
-            />
-          </>
-        }
+          {
+            props.item.type === 'playlist'
+              ? <Select
+                size="l"
+                placeholder="Плейлист"
+                value={props.item.key != null && !!playlists.find(p => p.id === props.item.key) ? [props.item.key] : []}
+                onUpdate={value => {
+                  props.item.key = value[0];
+                  props.onChange(props.item);
+                }}
+                options={playlists.map(playlist => ({
+                  value: playlist.id,
+                  content: playlist.name,
+                }))}
+              />
+              : <>
+                <TextInput
+                  size="l"
+                  placeholder="Ключ"
+                  value={props.item.key}
+                  onUpdate={value => {
+                    props.item.key = value;
+                    props.onChange(props.item);
+                  }}
+                />
+                <TextInput
+                  size="l"
+                  placeholder="Начало сек."
+                  type="number"
+                  value={String(props.item.initialTime || 0)}
+                  onUpdate={value => {
+                    props.item.initialTime = Number.parseFloat(value);
+                    props.onChange(props.item);
+                  }}
+                />
+              </>
+          }
         </div>
         <Select
           value={[props.item.type]}
@@ -155,6 +156,7 @@ function toTime(totalSeconds?: number | null) {
 }
 
 export default function MdFile() {
+  const modalFromFolder = useRef<ModalFromFolderRef>(null);
   const [seek, setSeek] = useState(0);
   // const { searchParams } = useBreadcrumbs();
   const video = useVideoState();
@@ -230,7 +232,7 @@ export default function MdFile() {
             Плейлист: {currentPlaylist?.name || "<Нету>"}
           </Card>
           <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
-            Время: {video.state.currentTime ?  toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
+            Время: {video.state.currentTime ? toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
           </Card>
           <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
             Прогресс: {toTime(video.state.currentTime)} / {toTime(meta.state.duration ?? 0)} ({video.state.currentTime?.toFixed()} / {(meta.state.duration ?? 0).toFixed()})
@@ -268,6 +270,9 @@ export default function MdFile() {
               seek: seek,
               events: [['refresh']],
             })}>Перемотать</Button>
+          </div>
+          <div className="flex gap-2">
+            <Button size="l" onClick={() => modalFromFolder.current?.open()}>Из папки</Button>
           </div>
         </div>
 
@@ -350,7 +355,7 @@ export default function MdFile() {
                             action: () => {
                               video.next({
                                 video: item,
-                                playlistKey: playlists[index].id, 
+                                playlistKey: playlists[index].id,
                               });
                             },
                             text: 'Запустить',
@@ -360,7 +365,7 @@ export default function MdFile() {
                             action: () => {
                               video.next({
                                 video: item,
-                                playlistKey: playlists[index].id, 
+                                playlistKey: playlists[index].id,
                                 replay: true,
                               });
                             },
@@ -418,6 +423,11 @@ export default function MdFile() {
           })}>Сохранить</Button>
         </div>
       </div>
+      <ModalFromFolder update={(data) => {
+        console.log(data);
+        playlist.setState(data);
+        setPlaylists(data.playlists ?? playlists);
+      }} ref={modalFromFolder} />
       <Overlay visible={video.loading || playlist.loading}>
         <Loader />
       </Overlay>

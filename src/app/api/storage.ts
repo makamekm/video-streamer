@@ -1,5 +1,6 @@
 import * as AWS from "@aws-sdk/client-s3";
 import { Upload, Progress } from "@aws-sdk/lib-storage";
+import { glob } from 'glob'
 import { $ } from 'zx';
 import { createReadStream, createWriteStream } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -45,6 +46,7 @@ export interface IStorage {
     writeJSON<T = any>(key: string, value: T): Promise<void>;
     remove(key: string): Promise<void>;
     list(key: string): Promise<string[]>;
+    glob(pattern: string): Promise<string[]>;
 }
 
 export class LocalStorage implements IStorage {
@@ -58,7 +60,7 @@ export class LocalStorage implements IStorage {
             const text = await readFile(resolve(LOCAL_PATH, key), "utf-8");
             json = JSON.parse(text ?? "{}");
         } catch (error) {
-            console.log(error);
+            // console.log(error);
         }
         return json ?? defaultValue;
     }
@@ -84,5 +86,12 @@ export class LocalStorage implements IStorage {
     async list(key: string): Promise<string[]> {
         const files = (await $`ls ${resolve(LOCAL_PATH, key)}`).toString().split('\n').filter(Boolean);
         return files.map(file => join(key, file.trim()));
+    }
+
+    async glob(pattern: string): Promise<string[]> {
+        return await glob([pattern], {
+            nodir: true,
+            cwd: resolve(LOCAL_PATH),
+        });
     }
 }
