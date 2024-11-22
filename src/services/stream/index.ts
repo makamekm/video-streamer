@@ -407,9 +407,9 @@ async function run() {
     clearTmp();
 
     const webStream = await createWebStream("http://localhost:3000/stream");
-    const webEmptyStream = await createWebStream("http://localhost:3000/empty");
-    const webEmptyStreamPass = new PassThrough();
-    webEmptyStream.pipe(webEmptyStreamPass);
+    // const webEmptyStream = await createWebStream("http://localhost:3000/empty");
+    // const webEmptyStreamPass = new PassThrough();
+    // webEmptyStream.pipe(webEmptyStreamPass);
 
     let subCommand: ffmpeg.FfmpegCommand;
 
@@ -468,7 +468,7 @@ async function run() {
             } else {
                 // webEmptyStream.pipe(webEmptyStreamPass);
                 // fileStream.pipe(webEmptyStreamPass);
-                subCommand = await createSimpleStream(webEmptyStreamPass);
+                // subCommand = await createSimpleStream(webEmptyStreamPass);
                 // subCommand.input(webEmptyStreamPass);
             }
 
