@@ -54,7 +54,7 @@ export const ModalFromFolder = React.forwardRef(({
       (ref as any).current = {
         open: () => {
           setName('');
-          setPath('videos/*');
+          setPath('**/*');
           setIsOpen(true);
         }
       };
@@ -69,7 +69,7 @@ export const ModalFromFolder = React.forwardRef(({
         </div>
         <div className="flex flex-col gap-2 w-full">
           <TextInput size="l" value={name} onChange={e => setName(e.currentTarget.value)} placeholder="Название" />
-          <TextInput size="l" value={path} onChange={e => setPath(e.currentTarget.value)} placeholder="video/*" />
+          <TextInput size="l" value={path} onChange={e => setPath(e.currentTarget.value)} placeholder="**/*" />
         </div>
         <div className="w-full flex justify-between gap-2">
           <Button size="l" onClick={() => setIsOpen(false)}>Отмена</Button>
