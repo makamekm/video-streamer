@@ -23,6 +23,7 @@
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/hls.js": "^1.0.0",
     "@types/torrent-stream": "^0.0.9",
+    "axios": "^1.7.7",
     "dotenv": "^16.4.5",
     "ffmpeg-stream": "^1.0.0",
     "fluent-ffmpeg": "^2.1.3",
