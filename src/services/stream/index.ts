@@ -519,6 +519,7 @@ async function run() {
 
     setInterval(() => {
         updateUI('button[data-testid="close-button"]');
+        updateUI('button[data-testid="visual-bell-dismiss-button"]');
     }, 2000);
 
     let started = false;
