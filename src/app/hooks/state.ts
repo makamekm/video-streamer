@@ -1,19 +1,21 @@
 import { DependencyList, useCallback, useEffect, useMemo, useState } from "react";
 import { PlaylistState, State, TorrentState } from "../state";
 
-export const useServerState = (url: string, body: any, fn: (data: string) => void | Promise<void>, deps: DependencyList = []) => {
+export const useServerState = (url: string, active: boolean, body: any, fn: (data: string) => void | Promise<void>, deps: DependencyList = []) => {
   const [loading, setLoading] = useState(true);
   const [inited, setInited] = useState(false);
   const [counter, setCounter] = useState(0);
 
   const controllState = useMemo<{
-    canListening: boolean;
     isListening: boolean;
     reader: ReadableStreamDefaultReader<string> | null
+    response: Response | null;
+    abortController: AbortController | null,
   }>(() => ({
-    canListening: true,
     isListening: false,
     reader: null,
+    response: null,
+    abortController: null,
   }), [body, counter]);
 
   const startListening = useCallback(async () => {
@@ -22,20 +24,25 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
     try {
       setLoading(true);
 
-      const response = await fetch(url, {
+      controllState.abortController = new AbortController();
+      const signal = controllState.abortController.signal;
+
+      controllState.response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "text/event-stream",
         },
         body: JSON.stringify(body ?? {}),
+        signal,
       });
 
       setLoading(false);
       setInited(true);
 
-      if (!response.body) return;
+      if (!controllState.response.body) return;
 
-      const reader = response.body
+      const reader = controllState.response
+        .body
         .pipeThrough(new TextDecoderStream())
         .getReader();
 
@@ -56,6 +63,9 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
           }
         }
       }
+
+      controllState.response = null;
+      controllState.abortController = null;
     } catch (error) {
       console.error(error);
     }
@@ -65,19 +75,24 @@ export const useServerState = (url: string, body: any, fn: (data: string) => voi
   }, [controllState, url, ...deps]);
 
   const updateState = useCallback(async () => {
-    if (!controllState.isListening && controllState.canListening && !controllState.reader) {
-      await startListening();
+    if (active) {
+      if (!controllState.isListening && !controllState.reader) {
+        await startListening();
+      }
+    } else {
+      controllState.abortController?.abort();
+      controllState.abortController = null;
+      controllState.reader?.cancel();
+      controllState.reader = null;
     }
-  }, [controllState, counter, startListening]);
+  }, [controllState, counter, startListening, active]);
 
   useEffect(() => {
-    controllState.canListening = true;
     updateState();
     const interval = setInterval(updateState, 1000);
 
     return () => {
       clearInterval(interval);
-      controllState.canListening = false;
       controllState.reader?.cancel();
       controllState.reader = null;
     };
@@ -148,7 +163,7 @@ export const useVideoMetaState = (key: string | undefined) => {
 
 export const useVideoState = (body?: any) => {
   const [state, setState] = useState<State>({});
-  const serverState = useServerState("/api/video/state/get", body, value => {
+  const serverState = useServerState("/api/video/state/get", true, body, value => {
     setState(JSON.parse(value));
   });
 
@@ -185,9 +200,40 @@ export const useVideoState = (body?: any) => {
   };
 }
 
+export const useStreamState = (body?: any) => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [active, setActive] = useState<boolean>(false);
+  const stream = useServerState("/api/stream", active, body, value => {
+    setLogs(logs => [
+      ...logs,
+      value,
+    ])
+  });
+
+  const stop = async () => {
+    setActive(false);
+    setLogs([]);
+    await fetch("/api/stream", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+  };
+
+  return {
+    ...stream,
+    stop,
+    active,
+    setActive,
+    logs,
+  };
+}
+
 export const usePlaylistState = (body?: PlaylistState) => {
   const [state, setState] = useState<PlaylistState>({});
-  const serverState = useServerState("/api/playlist/state/get", body, value => {
+  const serverState = useServerState("/api/playlist/state/get", true, body, value => {
     setState(JSON.parse(value));
   });
 
@@ -213,7 +259,7 @@ export const usePlaylistState = (body?: PlaylistState) => {
 
 export const useTorrentState = (body?: any) => {
   const [state, setState] = useState<TorrentState>({});
-  const serverState = useServerState("/api/torrent/state/get", body, value => {
+  const serverState = useServerState("/api/torrent/state/get", true, body, value => {
     setState(JSON.parse(value));
   },);
 

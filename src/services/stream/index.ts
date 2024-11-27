@@ -5,6 +5,7 @@ import ffmpeg from "fluent-ffmpeg";
 const { StreamInput, StreamOutput } = require('fluent-ffmpeg-multistream');
 import { PassThrough, Readable, Transform } from "node:stream";
 import { launch, getStream } from "puppeteer-stream";
+import { type Page } from "puppeteer-core";
 import { executablePath } from "puppeteer";
 import { resolve } from 'path';
 import { getStorage } from "../../app/api/storage";
@@ -27,6 +28,8 @@ const FRAMERATE = '24';
 const GBUFFER = '48';
 const BUFF_SIZE = '10000k';
 
+let page: Page;
+
 async function createWebStream(url: string) {
     const browser = await launch({
         executablePath: executablePath(),
@@ -36,11 +39,11 @@ async function createWebStream(url: string) {
             width: WIDTH,
             height: HEIGHT,
         },
-        // args: ['--enable-gpu', '--no-sandbox'],
-        args: ['--no-sandbox'],
+        args: ['--enable-gpu', '--no-sandbox'],
+        // args: ['--no-sandbox'],
     });
 
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.goto(url);
     return await getStream(page, {
         audio: true,
@@ -214,7 +217,7 @@ async function clearTmp() {
     // clearTmpJob();
 }
 
-async function createStream(webStream: Transform, onEnd?: Function) {
+async function createStream(url: string, webStream: Transform, onEnd?: Function) {
     const command = ffmpeg()
         .input(webStream)
         .inputOptions([
@@ -240,7 +243,8 @@ async function createStream(webStream: Transform, onEnd?: Function) {
             '5000000',
             '-re',
         ])
-        .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
+        .output(url)
         // .output("rtmp://localhost:1935/sdfsdf")
         // http://192.168.0.209:/sdfsdf/index.m3u8
         // .flvmeta()
@@ -352,54 +356,54 @@ async function createStream(webStream: Transform, onEnd?: Function) {
     return command;
 }
 
-async function applyEvents(state: State) {
-    let changed = false;
-    let event = state.events?.shift();
+// async function applyEvents(state: State) {
+//     let changed = false;
+//     let event = state.events?.shift();
 
-    if (event != null) {
-        //   await apply({
-        //     events: state.events,
-        //   });
-        changed = true;
-    }
+//     if (event != null) {
+//         //   await apply({
+//         //     events: state.events,
+//         //   });
+//         changed = true;
+//     }
 
-    while (event != null) {
-        const [type, ...args] = event;
-        switch (type) {
-            case 'reload':
-                //   window.location.href = window.location.href;
-                break;
-            case 'update':
-                //   setState(args[0]);
-                //   setCounter(counter + 1);
-                break;
-            case 'refresh':
-                //   setCounter(counter + 1);
-                break;
-            default:
-                console.error('Not event implemented', ...event);
-        }
+//     while (event != null) {
+//         const [type, ...args] = event;
+//         switch (type) {
+//             case 'reload':
+//                 //   window.location.href = window.location.href;
+//                 break;
+//             case 'update':
+//                 //   setState(args[0]);
+//                 //   setCounter(counter + 1);
+//                 break;
+//             case 'refresh':
+//                 //   setCounter(counter + 1);
+//                 break;
+//             default:
+//                 console.error('Not event implemented', ...event);
+//         }
 
-        event = state.events?.shift();
-        if (event != null) {
-            // await apply({
-            //   events: [],
-            // });
-            changed = true;
-        }
-    }
+//         event = state.events?.shift();
+//         if (event != null) {
+//             // await apply({
+//             //   events: [],
+//             // });
+//             changed = true;
+//         }
+//     }
 
-    return {
-        state,
-        changed,
-    };
-}
+//     return {
+//         state,
+//         changed,
+//     };
+// }
 
 async function getState(finish = false) {
     const storage = await getStorage();
 
     let state = await storage.readJSON<State>(STATE_PATH, {
-        events: [],
+        // events: [],
         played: [],
     });
 
@@ -416,7 +420,11 @@ async function getState(finish = false) {
 async function run() {
     clearTmp();
 
-    const webStream = await createWebStream("http://localhost:3000/stream");
+    const cmd = await getState();
+    let state = cmd.state;
+
+    // const webStream = await createWebStream("http://localhost:3000/stream");
+    const webStream = await createWebStream(state.uiUrl || "https://www.figma.com/proto/A5pSlrVoxeEX7368ZA1dgp/%D0%A1%D1%82%D1%80%D0%B8%D0%BC---%D0%9F%D1%83%D1%82%D0%B5%D1%88%D0%B5%D1%81%D1%82%D0%B2%D0%B8%D1%8F?node-id=4-9&node-type=canvas&t=flYAcaWiMCFUB0O0-0&scaling=contain&content-scaling=responsive&page-id=0%3A1&hotspot-hints=0&disable-default-keyboard-nav=1&hide-ui=1");
     // const webEmptyStream = await createWebStream("http://localhost:3000/empty");
     // const webEmptyStreamPass = new PassThrough();
     // webEmptyStream.pipe(webEmptyStreamPass);
@@ -431,9 +439,10 @@ async function run() {
     let currentVideo: Video | null | undefined = null;
 
     async function update(finish = false) {
-        const { state, force } = await getState(finish);
+        const cmd = await getState(finish);
+        state = cmd.state;
 
-        if (currentVideo?.id !== state?.video?.id || force) {
+        if (currentVideo?.id !== state?.video?.id || cmd.force) {
             currentVideo = state?.video;
             console.log(currentVideo);
 
@@ -488,24 +497,41 @@ async function run() {
 
     await update();
 
+    async function updateUI(selector: string) {
+        try {
+            const elements = await page?.$$(selector);
+            for (const element of elements) {
+                // const elementText = await page.evaluate(element => element?.outerHTML, element);
+                // console.log(elementText);
+                await element.click();
+            }
+        } catch (error) {
+            //
+        }
+    }
+
     setInterval(() => {
         update();
     }, 4000);
 
-    await runCommand(webStream);
+    setInterval(() => {
+        updateUI('button[data-testid="close-button"]');
+    }, 2000);
+
+    await runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream);
 }
 
 let command: ffmpeg.FfmpegCommand;
 
-async function runCommand(webStream: Transform) {
+async function runCommand(url: string, webStream: Transform) {
     try {
         command?.kill("SIGTERM");
     } catch (error) {
         //
     }
 
-    command = await createStream(webStream, () => {
-        runCommand(webStream);
+    command = await createStream(url, webStream, () => {
+        runCommand(url, webStream);
     });
     // command = await createStream(fileStream, onEnd);
 

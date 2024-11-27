@@ -1,6 +1,8 @@
 export interface State {
-    isPlaying?: boolean;
-    events?: [string, ...any][];
+    uiUrl?: string;
+    url?: string;
+    // isPlaying?: boolean;
+    // events?: [string, ...any][];
     played?: string[];
     video?: Video | null;
     defaultPlaylist?: string;

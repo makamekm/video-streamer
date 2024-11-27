@@ -1,76 +1,51 @@
-import { launch, getStream } from "puppeteer-stream";
-import { executablePath } from "puppeteer";
 import { type NextRequest } from 'next/server';
-import * as mime from 'mime-types';
-const wildcard = require('wildcard');
-import { join, resolve } from 'path';
-import { createWriteStream } from "fs";
+import { PassThrough } from 'stream';
+import { $, ProcessPromise } from 'zx';
+
+let process: ProcessPromise | null;
+let signalController: AbortController | null;
+
+export async function DELETE(req: NextRequest) {
+  signalController?.abort("0");
+  process?.kill();
+  process = null;
+  signalController = null;
+
+  return Response.json(
+    { success: true, message: 'done' },
+    { status: 200 },
+  );
+}
 
 // curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:3000/api/torrent/load
 export async function POST(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
-  const body = await req.json() ?? {};
-
-  if (!bucket) {
-    return Response.json(
-      { success: false, message: 'no bucket' },
-      { status: 404 },
-    );
-  }
-
-  // Obtain the conversation messages from request's body
-  // const { messages = [] } = await request.json();
   const encoder = new TextEncoder();
 
   let controller: ReadableStreamDefaultController<any> | null;
   const emit = (data: any) => {
-    controller?.enqueue(encoder.encode(JSON.stringify(data)));
+    controller?.enqueue(encoder.encode(data));
   }
 
-  const browser = await launch({
-    executablePath: executablePath(),
-    // executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    // executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
-    // or on linux: "google-chrome-stable"
-    // or on mac: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-    headless: "new",
-    // channel: 'chrome',
-    userDataDir: resolve("./tmp/chrome_" + (Math.random() * 1_000_000).toFixed()),
-    defaultViewport: {
-      width: 1920,
-      height: 1080,
-    },
-    // extensionPath: resolve("./tmp/chrome-ext"),
+  signalController = signalController ?? new AbortController();
+
+  process = process ?? $({ signal: signalController?.signal })`npm run stream`;
+
+  process.finally(() => {
+    controller = null;
   });
 
-  const page = await browser.newPage();
-  await page.goto("http://localhost:3000/stream");
-  const stream = await getStream(page, { audio: true, video: true });
+  const stream = new PassThrough();
 
-  const file = createWriteStream(resolve("./test.webm"));
+  process.pipe(stream);
 
-  stream.pipe(file);
-
-  const start = async () => {
-    await stream.destroy();
-    file.close();
-
-    console.log("finished");
-
-    await browser.close();
-    controller?.close();
-    controller = null;
-  };
-
-  setTimeout(start, 1000 * 5);
+  stream.on('data', (chunk) => {
+    emit(Buffer.from(chunk).toString('utf8'));
+  });
 
   const watch = async () => {
-    while(true) {
-      emit({
-        type: 'ping',
-      });
+    while (true) {
       if (!controller) break;
-      await new Promise(r => setTimeout(r, 3000));
+      await new Promise(r => setTimeout(r, 5000));
     }
   };
 
@@ -80,6 +55,7 @@ export async function POST(req: NextRequest) {
       watch();
     },
     cancel() {
+      // controller?.close();
       controller = null;
     },
   });

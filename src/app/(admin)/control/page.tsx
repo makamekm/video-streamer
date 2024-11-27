@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Card, DropdownMenu, Loader, Overlay, Select, Switch, TextInput } from '@gravity-ui/uikit';
-import { Equal, Ellipsis, Plus, ArrowRotateLeft, ArrowRight, Play } from '@gravity-ui/icons';
+import { Button, Card, DropdownMenu, Loader, Overlay, Select, Sheet, Switch, TextInput } from '@gravity-ui/uikit';
+import { Equal, Ellipsis, Plus, Stop, ArrowRight, Play } from '@gravity-ui/icons';
 import {
   DndContext,
   closestCenter,
@@ -21,7 +21,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import { usePlaylistState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
+import { usePlaylistState, useStreamState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
 import { Playlist, PlaylistItem } from "@/app/state";
 import { ModalFromFolder, ModalFromFolderRef } from "@/app/modals/modal-from-folder";
 
@@ -157,9 +157,14 @@ function toTime(totalSeconds?: number | null) {
 
 export default function MdFile() {
   const modalFromFolder = useRef<ModalFromFolderRef>(null);
-  const [seek, setSeek] = useState(0);
+  // const [seek, setSeek] = useState(0);
+  const [url, setUrl] = useState('');
+  const [uiUrl, setUiUrl] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [visible, setVisible] = React.useState(false);
   // const { searchParams } = useBreadcrumbs();
   const video = useVideoState();
+  const stream = useStreamState();
   const playlist = usePlaylistState();
   const meta = useVideoMetaState(video.state.video?.key);
 
@@ -184,6 +189,14 @@ export default function MdFile() {
     }
   }, [playlist.state.playlists]);
 
+  useEffect(() => {
+    setUrl(video.state.url || "");
+  }, [video.state.url]);
+
+  useEffect(() => {
+    setUiUrl(video.state.uiUrl || "");
+  }, [video.state.uiUrl]);
+
   const currentVideo = video.state.video;
   const currentPlaylist = playlists.find(p => p.id === video.state.video?.playlistKey);
 
@@ -191,17 +204,6 @@ export default function MdFile() {
     <div className="flex-1 flex flex-col relative container mx-auto px-2 py-2 min-h-[100%]">
       <div className="flex-1 flex flex-col items-center gap-2">
         <div className="flex items-center justify-center w-full gap-3">
-          <Switch className="flex items-center [&>*]:my-1" size="l" checked={video.state.isPlaying ?? false} onUpdate={(value) => video.apply({
-            isPlaying: value,
-          })
-          }>
-            <div className="flex items-center gap-2">
-              <Play />
-              <div>
-                Играть/Пауза
-              </div>
-            </div>
-          </Switch>
           <Button size="l" onClick={() => video.next({
             finish: true,
           })}>
@@ -212,7 +214,29 @@ export default function MdFile() {
               </div>
             </div>
           </Button>
-          <Button size="l" onClick={() => video.apply({
+          <Button size="l" onClick={() => stream.setActive(true)} disabled={stream.active}>
+            <div className="flex items-center gap-2">
+              <Play />
+              <div>
+                Старт
+              </div>
+            </div>
+          </Button>
+          <Button size="l" onClick={() => stream.stop()}>
+            <div className="flex items-center gap-2">
+              <Stop />
+              <div>
+                Стоп
+              </div>
+            </div>
+          </Button>
+          <Button size="l" onClick={() => setVisible(true)} disabled={!stream.logs?.length}>Консоль</Button>
+          <Sheet visible={visible} onClose={() => setVisible(false)}>
+            <div className="flex flex-col-reverse gap-2">
+              {stream.logs.map((log, index) => <div key={index}>{log}</div>)}
+            </div>
+          </Sheet>
+          {/* <Button size="l" onClick={() => video.apply({
             events: [['reload']],
           })}>
             <div className="flex items-center gap-2">
@@ -221,18 +245,47 @@ export default function MdFile() {
                 Перезагрузить
               </div>
             </div>
-          </Button>
+          </Button> */}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex gap-2">
+            <TextInput
+              className="flex-1"
+              size="l"
+              placeholder="Ссылка на стрим"
+              value={url}
+              onUpdate={value => {
+                setUrl(value);
+              }}
+            />
+            <Button size="l" onClick={() => video.apply({
+              url: url,
+            })}>Сохранить</Button>
+          </div>
+          <div className="flex gap-2">
+            <TextInput
+              className="flex-1"
+              size="l"
+              placeholder="Ссылка на стрим"
+              value={uiUrl}
+              onUpdate={value => {
+                setUiUrl(value);
+              }}
+            />
+            <Button size="l" onClick={() => video.apply({
+              uiUrl: uiUrl,
+            })}>Сохранить</Button>
+          </div>
+          <Card className="inline-flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
             Видео: {currentVideo?.key || "<Нету>"}
           </Card>
           <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
             Плейлист: {currentPlaylist?.name || "<Нету>"}
           </Card>
           <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
-            Время: {video.state.currentTime ? toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)})
+            Время: {video.state.currentTime ? toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек.
+            {/* Время: {video.state.currentTime ? toTime(video.state.currentTime) : "<Нету>"} - {(video.state.currentTime ?? 0)?.toFixed()} сек. / ({toTime(seek)}) */}
           </Card>
           <Card className="flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
             Прогресс: {toTime(video.state.currentTime)} / {toTime(meta.state.duration ?? 0)} ({video.state.currentTime?.toFixed()} / {(meta.state.duration ?? 0).toFixed()})
@@ -254,7 +307,7 @@ export default function MdFile() {
               }))}
             />
           </Card>
-          <div className="flex gap-2">
+          {/* <div className="flex gap-2">
             <TextInput
               className="max-w-[200px]"
               size="l"
@@ -270,13 +323,13 @@ export default function MdFile() {
               seek: seek,
               events: [['refresh']],
             })}>Перемотать</Button>
-          </div>
-          <div className="flex gap-2">
-            <Button size="l" onClick={() => modalFromFolder.current?.open()}>Из папки</Button>
+          </div> */}
+          <div className="flex flex-wrap gap-2">
+            <Button size="l" onClick={() => modalFromFolder.current?.open()}>Плейлист из папки</Button>
           </div>
         </div>
 
-        <div className="flex gap-2 w-full overflow-x-auto max-w-full p-4">
+        <div className="flex gap-2 w-full overflow-x-auto max-w-full">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
