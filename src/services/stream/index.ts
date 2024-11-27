@@ -28,6 +28,8 @@ const FRAMERATE = '24';
 const GBUFFER = '48';
 const BUFF_SIZE = '10000k';
 
+const RESTART_TIMEOUT = 60000;
+
 let page: Page;
 
 async function createWebStream(url: string) {
@@ -217,7 +219,7 @@ async function clearTmp() {
     // clearTmpJob();
 }
 
-async function createStream(url: string, webStream: Transform, onEnd?: Function) {
+async function createStream(url: string, webStream: Transform, onEnd?: Function, onProgress?: Function) {
     const command = ffmpeg()
         .input(webStream)
         .inputOptions([
@@ -345,6 +347,7 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function)
             // process.exit(1);
         })
         .on('progress', async (progress) => {
+            onProgress?.(progress.timemark);
             console.log("command", progress.timemark);
         })
         .on('end', () => {
@@ -518,12 +521,29 @@ async function run() {
         updateUI('button[data-testid="close-button"]');
     }, 2000);
 
-    await runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream);
+    let started = false;
+    let time = +new Date();
+
+    setInterval(() => {
+        if (started && ((time + RESTART_TIMEOUT) < +new Date())) {
+            started = false;
+            time = +new Date();
+            runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream, () => {
+                started = true;
+                time = +new Date();
+            });
+        }
+    }, 5000);
+
+    await runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream, () => {
+        started = true;
+        time = +new Date();
+    });
 }
 
 let command: ffmpeg.FfmpegCommand;
 
-async function runCommand(url: string, webStream: Transform) {
+async function runCommand(url: string, webStream: Transform, onProgress?: Function) {
     try {
         command?.kill("SIGTERM");
     } catch (error) {
@@ -531,7 +551,7 @@ async function runCommand(url: string, webStream: Transform) {
     }
 
     command = await createStream(url, webStream, () => {
-        runCommand(url, webStream);
+        runCommand(url, webStream, onProgress);
     });
     // command = await createStream(fileStream, onEnd);
 
