@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const watch = async () => {
     while (true) {
       let videoState = await storage.readJSON<State>(pathState, {
-        events: [],
+        // events: [],
         played: [],
       });
 

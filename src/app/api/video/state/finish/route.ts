@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   const storage = await getStorage();
   try {
     let state = await storage.readJSON<State>(path, {
-      events: [],
+      // events: [],
       played: [],
     });
 
