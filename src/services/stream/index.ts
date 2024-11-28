@@ -22,11 +22,11 @@ const STATE_PATH = 'state.json';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-const VIDEO_BITRATE = '5000k';
+const VIDEO_BITRATE = '3000k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
 const GBUFFER = '48';
-const BUFF_SIZE = '10000k';
+const BUFF_SIZE = '9000k';
 
 const RESTART_TIMEOUT = 60000;
 
