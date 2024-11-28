@@ -22,11 +22,13 @@ const STATE_PATH = 'state.json';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-const VIDEO_BITRATE = '3000k';
+const VIDEO_BITRATE = '2500k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
 const GBUFFER = '48';
 const BUFF_SIZE = '9000k';
+const QUALITY_MAIN_CF = '20';
+const QUALITY_SUB_CF = '20';
 
 const RESTART_TIMEOUT = 60000;
 
@@ -146,7 +148,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '-g',
                 GBUFFER,
                 '-crf',
-                '20',
+                QUALITY_SUB_CF,
                 '-ar',
                 '44100',
                 '-ac',
@@ -321,7 +323,7 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-g',
             GBUFFER,
             '-crf',
-            '21',
+            QUALITY_MAIN_CF,
             '-ar',
             '44100',
             '-ac',
