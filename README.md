@@ -1,50 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 ## Getting Started
 
 First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-docker rm -f rtmp
-docker run -d --name=rtmp --restart=unless-stopped -p 1935:1935 -p 3002:80 alfg/nginx-rtmp
-docker run -d --name=rtmp --restart=unless-stopped -p 8554:8554 -p 1935:1935 -p 8000:8000/udp -p 8001:8001/udp -p 8888:8888 bluenviron/mediamtx
+```bash
+if ! sudo docker info > /dev/null 2>&1; then
+  sudo apt-get update; sudo apt-get install ca-certificates curl gnupg -y; sudo install -m 0755 -d /etc/apt/keyrings; curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg; sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-ffmpeg -re \
--f lavfi -i testsrc2=size=960x540 \
--f lavfi -i aevalsrc="sin(0*2*PI*t)" \
--vcodec libx264 \
--r 30 -g 30 \
--preset fast -vb 3000k -pix_fmt rgb24 \
--pix_fmt yuv420p \
--f flv \
-rtmp://live-fra.twitch.tv/app/STREAMKEY
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null; sudo apt-get update; sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+fi
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+sudo apt-get install git ffmpeg psmisc -y
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+sudo curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | sudo bash
 
-## Learn More
+sudo ufw allow 443/tcp
+sudo ufw allow 80/tcp
 
-To learn more about Next.js, take a look at the following resources:
+nvm install 18
+nvm use 18
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+filebrowser -a 0.0.0.0 --noauth -r /home/makame/projects/video-streamer/files
+```

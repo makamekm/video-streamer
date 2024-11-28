@@ -11,3 +11,4 @@ node_modules
 
 /out.m3u8
 /out*.ts
+filebrowser.db

@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
       videoState = await nextVideo(videoState, storage);
 
-      controller?.enqueue(encoder.encode(JSON.stringify(videoState)));
+      controller?.enqueue(encoder.encode(JSON.stringify(videoState) + '\n'));
       if (!controller) break;
       await new Promise(r => setTimeout(r, 2000));
     }

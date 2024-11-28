@@ -1,13 +1,15 @@
 "use client"
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {Overlay, Loader, Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput} from '@gravity-ui/uikit';
-import {Breadcrumbs} from '@gravity-ui/uikit';
+import { Overlay, Loader, Table, TableColumnConfig, TableDataItem, withTableActions, TableActionConfig, FirstDisplayedItemsCount, LastDisplayedItemsCount, useToaster, Button, Modal, TextInput, Sheet } from '@gravity-ui/uikit';
+import { Stop, Play } from '@gravity-ui/icons';
+import { Breadcrumbs } from '@gravity-ui/uikit';
 import { useBreadcrumbs } from "../../hooks/breadcrumbs";
 import { useRouter } from "next/navigation";
 import { useDebouncedEffect } from "../../hooks/debounce";
 import { ModalCreate, ModalCreateRef } from "../../modals/modal-create";
 import { ModalDelete, ModalDeleteRef } from "../../modals/modal-delete";
+import { useFSState } from "@/app/hooks/state";
 
 const DataTable = withTableActions(Table);
 
@@ -46,94 +48,42 @@ const getRowActions = ({
 };
 
 export default function Home() {
-  const modalCreate = useRef<ModalCreateRef>(null);
-  const modalDelete = useRef<ModalDeleteRef>(null);
-
-  const { add } = useToaster();
-  const router = useRouter();
-  const { searchParams, breadcrumbs, updateParams, getParams } = useBreadcrumbs();
-
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<{
-    name: string;
-    key: string;
-    type: 'folder' | 'file';
-  }[]>([]);
- 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-
-    try {
-      const result = await fetch(`/api/s3?${searchParams.toString()}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json;charset=utf-8'
-        },
-        signal: AbortSignal.timeout(5000),
-      }).then(response => response.json());
-
-      if (Array.isArray(result)) {
-        setData(result);
-      }
-    } catch (error) {
-      add({
-        name: '',
-        title: 'Ошибка',
-        content: error?.toString() ?? 'Ошибка',
-        theme: 'danger',
-      });
-    }
-
-    setLoading(false);
-  }, [searchParams]);
+  const [url, setUrl] = useState('localhost');
+  const stream = useFSState();
 
   useEffect(() => {
-    setLoading(true);
-  }, [fetchData]);
-
-  useDebouncedEffect(() => {
-    fetchData();
-  }, [fetchData], 1000);
+    if (typeof window !== "undefined") {
+      setUrl(window.location.hostname);
+    }
+  }, []);
 
   return (
-    <div className="relative container mx-auto px-2 py-2">
-      <div className="flex flex-col gap-2 items-center">
-        <div className="w-full px-3">
-          <Breadcrumbs
-            items={breadcrumbs}
-            firstDisplayedItemsCount={FirstDisplayedItemsCount.One}
-            lastDisplayedItemsCount={LastDisplayedItemsCount.Two}
-          />
-        </div>
-        <div className="w-full flex justify-end gap-2">
-          <Button size="l" onClick={modalCreate.current?.open} disabled={loading}>Создать</Button>
-        </div>
-        <DataTable
-          className="w-full [&>table]:w-full"
-          data={data}
-          columns={columns}
-          getRowActions={getRowActions({
-            onDelete: (item) => modalDelete.current?.open(item.key, item.type),
-            onOpen: (item) => window.open(`/api/s3/get?${getParams(item.key)}`, '_blank'),
-          })}
-          onRowClick={item => {
-            if (item.type === 'folder') {
-              updateParams(item.key);
-            } else if (item.type === 'file' && ['md'].includes(item.ext)) {
-              router.push(`/md?${getParams(item.key)}`);
-            } else if (item.type === 'file' && ['mp4', 'mkv', 'mov', 'avi'].includes(item.ext)) {
-              router.push(`/video?${getParams(item.key)}`);
-            } else {
-              window.open(`/api/s3/get?${getParams(item.key)}`, '_blank');
-            }
-          }}
-        />
+    <div className="flex-1 relative mx-auto flex flex-col">
+      <div className="flex-1 flex flex-col items-center">
+        {/* <div className="w-full flex justify-end gap-2 p-2">
+          <Button size="l" onClick={() => stream.setActive(true)} disabled={stream.active}>
+            <div className="flex items-center gap-2">
+              <Play />
+              <div>
+                Старт
+              </div>
+            </div>
+          </Button>
+          <Button size="l" onClick={() => stream.stop()}>
+            <div className="flex items-center gap-2">
+              <Stop />
+              <div>
+                Стоп
+              </div>
+            </div>
+          </Button>
+        </div> */}
+        {/* <div className="flex flex-col-reverse gap-2 p-4">
+          {stream.logs.map((log, index) => <div key={index}>{log}</div>)}
+        </div> */}
+        <iframe className="flex-1 w-full" src={`http://${url}:8080/`}>
+        </iframe>
       </div>
-      <Overlay visible={loading}>
-        <Loader />
-      </Overlay>
-      <ModalDelete update={fetchData} ref={modalDelete} />
-      <ModalCreate update={fetchData} ref={modalCreate} />
     </div>
   );
 }

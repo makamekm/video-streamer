@@ -5,3 +5,7 @@
 :root {
   color-scheme: light;
 }
+
+.gn-aside-header__content {
+  display: flex;
+}

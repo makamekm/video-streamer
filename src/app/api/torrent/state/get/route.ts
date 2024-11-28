@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       const json = await storage.readJSON<TorrentState>(path, {
 
       });
-      controller?.enqueue(encoder.encode(JSON.stringify(json)));
+      controller?.enqueue(encoder.encode(JSON.stringify(json) + '\n'));
       if (!controller) break;
       await new Promise(r => setTimeout(r, 2000));
     }

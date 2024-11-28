@@ -1,8 +1,8 @@
 "use client";
 
 import { MenuItem, PageLayout, PageLayoutAside } from "@gravity-ui/navigation";
+import { House, Play, FloppyDisk, Archive } from '@gravity-ui/icons';
 import { useMemo, useState } from "react";
-import logoIcon from "../icons/logo.svg";
 import { useRouter, usePathname } from "next/navigation";
 
 export default function MenuLayout({
@@ -16,9 +16,21 @@ export default function MenuLayout({
 
   const menuItemsShowcase = useMemo<MenuItem[]>(() => [
     {
+      id: 'control',
+      title: 'Управление',
+      icon: Play,
+      link: '/',
+      onItemClick(item, collapsed, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push('/');
+      },
+      current: pathname === '/',
+    },
+    {
       id: 's3',
       title: 'Диски S3',
-      icon: logoIcon,
+      icon: FloppyDisk,
       link: '/s3',
       onItemClick(item, collapsed, event) {
         event.preventDefault();
@@ -27,51 +39,39 @@ export default function MenuLayout({
       },
       current: pathname === '/s3',
     },
-    {
-      id: 'control',
-      title: 'Управление',
-      icon: logoIcon,
-      link: '/control',
-      onItemClick(item, collapsed, event) {
-        event.preventDefault();
-        event.stopPropagation();
-        router.push('/control');
-      },
-      current: pathname === '/control',
-    },
-    {
-      id: 'torrent',
-      title: 'Торрент',
-      icon: logoIcon,
-      link: '/torrent',
-      onItemClick(item, collapsed, event) {
-        event.preventDefault();
-        event.stopPropagation();
-        router.push('/torrent');
-      },
-      current: pathname === '/torrent',
-    },
+    // {
+    //   id: 'torrent',
+    //   title: 'Торрент',
+    //   icon: Archive,
+    //   link: '/torrent',
+    //   onItemClick(item, collapsed, event) {
+    //     event.preventDefault();
+    //     event.stopPropagation();
+    //     router.push('/torrent');
+    //   },
+    //   current: pathname === '/torrent',
+    // },
   ], [pathname]);
-  
+
   return (
     <PageLayout compact={compact}>
       <PageLayoutAside
-            headerDecoration
-            menuItems={menuItemsShowcase}
-            logo={{
-                text: 'Diplodoc Админка',
-                icon: logoIcon,
-                href: '#',
-                'aria-label': 'Diplodoc Админка',
-                onClick: () => router.push('/'),
-            }}
-            onChangeCompact={setCompact}
-            qa={'pl-aside'}
-        />
+        headerDecoration
+        menuItems={menuItemsShowcase}
+        logo={{
+          text: 'Стриминг',
+          icon: House,
+          href: '/',
+          'aria-label': 'Стриминг',
+          onClick: () => router.push('/'),
+        }}
+        onChangeCompact={setCompact}
+        qa={'pl-aside'}
+      />
 
-        <PageLayout.Content>
-          {children}
-        </PageLayout.Content>
+      <PageLayout.Content>
+        {children}
+      </PageLayout.Content>
     </PageLayout>
   );
 }

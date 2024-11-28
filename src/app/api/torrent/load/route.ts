@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
 
   let controller: ReadableStreamDefaultController<any> | null;
   const emit = (data: any) => {
-    controller?.enqueue(encoder.encode(JSON.stringify(data)));
+    controller?.enqueue(encoder.encode(JSON.stringify(data) + '\n'));
   }
 
   let engine: TorrentStream.TorrentEngine | null = torrentStream(

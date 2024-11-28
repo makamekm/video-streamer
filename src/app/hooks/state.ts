@@ -2,9 +2,9 @@ import { DependencyList, useCallback, useEffect, useMemo, useState } from "react
 import { PlaylistState, State, TorrentState } from "../state";
 
 export const useServerState = (url: string, active: boolean, body: any, fn: (data: string) => void | Promise<void>, deps: DependencyList = []) => {
-  const [loading, setLoading] = useState(true);
-  const [inited, setInited] = useState(false);
-  const [counter, setCounter] = useState(0);
+  const [loading, setLoading] = useState(() => active);
+  const [inited, setInited] = useState(() => false);
+  const [counter, setCounter] = useState(() => 0);
 
   const controllState = useMemo<{
     isListening: boolean;
@@ -57,7 +57,10 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
 
         if (value) {
           try {
-            fn?.(value);
+            const values = value.split('\n');
+            for (const value of values) {
+              fn?.(value);
+            }
           } catch (error) {
             //
           }
@@ -67,6 +70,9 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
       controllState.response = null;
       controllState.abortController = null;
     } catch (error) {
+      setLoading(false);
+      setInited(true);
+
       console.error(error);
     }
 
@@ -214,6 +220,37 @@ export const useStreamState = (body?: any) => {
     setActive(false);
     setLogs([]);
     await fetch("/api/stream", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({}),
+    });
+  };
+
+  return {
+    ...stream,
+    stop,
+    active,
+    setActive,
+    logs,
+  };
+}
+
+export const useFSState = () => {
+  const [logs, setLogs] = useState<string[]>([]);
+  const [active, setActive] = useState<boolean>(true);
+  const stream = useServerState("/api/fs", active, {}, value => {
+    setLogs(logs => [
+      ...logs,
+      value,
+    ])
+  });
+
+  const stop = async () => {
+    setActive(false);
+    setLogs([]);
+    await fetch("/api/fs", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

@@ -101,21 +101,24 @@ export default function Home() {
         break;
       }
 
-      if (value) {
-        try {
-          const json = JSON.parse(value);
-          switch (json.type) {
-            case 'file':
-              item.files.set(json.path, {
-                ...item.files.get(json.path),
-                ...json,
-              })
-              setData(data => [...data]);
-              break;
-            default:
+      const values = value?.split('\n') ?? [];
+      for (const value of values) {
+        if (value) {
+          try {
+            const json = JSON.parse(value);
+            switch (json.type) {
+              case 'file':
+                item.files.set(json.path, {
+                  ...item.files.get(json.path),
+                  ...json,
+                })
+                setData(data => [...data]);
+                break;
+              default:
+            }
+          } catch (error) {
+            console.error(error);
           }
-        } catch (error) {
-          console.error(error);
         }
       }
     }
