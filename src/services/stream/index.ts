@@ -22,13 +22,19 @@ const STATE_PATH = 'state.json';
 
 const WIDTH = 1920;
 const HEIGHT = 1080;
-const VIDEO_BITRATE = '2500k';
+// const WIDTH = 1600;
+// const HEIGHT = 900;
+// const WIDTH = 1280;
+// const HEIGHT = 720;
+// const WIDTH = 720;
+// const HEIGHT = 480;
+const VIDEO_BITRATE = '10000k';
 const AUDIO_BITRATE = '128k';
 const FRAMERATE = '24';
 const GBUFFER = '48';
-const BUFF_SIZE = '9000k';
-const QUALITY_MAIN_CF = '20';
-const QUALITY_SUB_CF = '20';
+const BUFF_SIZE = '20000k';
+const QUALITY_MAIN_CF = '21';
+const QUALITY_SUB_CF = '21';
 
 const RESTART_TIMEOUT = 60000;
 
@@ -77,6 +83,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
         const command = ffmpeg()
             .input(stream)
             .inputOptions([
+                // '-hwaccel', 'qsv',
                 '-probesize',
                 '10M',
                 '-analyzeduration',
@@ -90,16 +97,19 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
             .output(OUT_TMP_STREAM)
             // .output("rtmp://localhost:1935/sdfsdf")
             .addOutputOptions([
+                // '-qsv_device', '/dev/dri/renderD128',
                 '-c:v',
                 'libx264',
                 '-c:a',
                 'mp3',
                 '-preset',
-                'veryfast',
+                'ultrafast',
                 // '-tune',
                 // 'zerolatency',
+                '-tune',
+                'fastdecode',
                 '-movflags',
-                'isml+frag_keyframe+empty_moov+live',
+                'isml+frag_keyframe+empty_moov+live+faststart',
                 // '-f', 'dash', '-seg_duration', '2', '-window_size', '5', '-extra_window_size', '2', '-remove_at_exit', '1',
                 '-f',
                 'hls',
@@ -283,7 +293,9 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-c:a',
             'mp3',
             '-preset',
-            'veryfast',
+            'ultrafast',
+            '-movflags',
+            '+faststart',
             // '-filter_complex',
             // "'[1:v]colorkey=0x00FF00:0.3:0.2:[ckout];[0:v][ckout]overlay[out]'",
             '-map',
@@ -292,6 +304,8 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '1:a?',
             // '-tune',
             // 'zerolatency',
+            '-tune',
+            'fastdecode',
             '-flags',
             '+global_header+low_delay',
             '-movflags',
