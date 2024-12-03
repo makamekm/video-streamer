@@ -1,7 +1,10 @@
 "use client"
 
 import React, { useEffect, useRef, useState } from "react";
-import { Button, Card, DropdownMenu, Loader, Overlay, Select, Sheet, Switch, TextInput } from '@gravity-ui/uikit';
+import {
+  Button, Card, DropdownMenu, Loader, Overlay, Select, Sheet, Switch, TextInput
+
+} from '@gravity-ui/uikit';
 import { Equal, Ellipsis, Plus, Stop, ArrowRight, Play } from '@gravity-ui/icons';
 import {
   DndContext,
@@ -22,7 +25,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 
 import { usePlaylistState, useStreamState, useVideoMetaState, useVideoState } from "@/app/hooks/state";
-import { Playlist, PlaylistItem } from "@/app/state";
+import { Playlist, PlaylistItem, State } from "@/app/state";
 import { ModalFromFolder, ModalFromFolderRef } from "@/app/modals/modal-from-folder";
 
 function PlaceholderItem(props: {
@@ -158,11 +161,7 @@ function toTime(totalSeconds?: number | null) {
 export default function MdFile() {
   const modalFromFolder = useRef<ModalFromFolderRef>(null);
   // const [seek, setSeek] = useState(0);
-  const [url, setUrl] = useState('');
-  const [uiUrl, setUiUrl] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
   const [visible, setVisible] = React.useState(false);
-  // const { searchParams } = useBreadcrumbs();
   const video = useVideoState();
   const stream = useStreamState();
   const playlist = usePlaylistState();
@@ -189,13 +188,44 @@ export default function MdFile() {
     }
   }, [playlist.state.playlists]);
 
-  useEffect(() => {
-    setUrl(video.state.url || "");
-  }, [video.state.url]);
+  const [configVisible, setConfigVisible] = React.useState(false);
+  const [config, setConfig] = useState<State>({});
 
   useEffect(() => {
-    setUiUrl(video.state.uiUrl || "");
-  }, [video.state.uiUrl]);
+    setConfig({
+      url: video.state.url,
+      uiUrl: video.state.uiUrl,
+      width: video.state.width,
+      height: video.state.height,
+      preset: video.state.preset,
+      videoBitrate: video.state.videoBitrate,
+      buffSize: video.state.buffSize,
+      audioBitrate: video.state.audioBitrate,
+      qualityCF: video.state.qualityCF,
+      framerate: video.state.framerate,
+      gbuffer: video.state.gbuffer,
+      keyColor: video.state.keyColor,
+      keySimilarity: video.state.keySimilarity,
+      keyBlend: video.state.keyBlend,
+      args: video.state.args,
+    });
+  }, [
+    video.state.url,
+    video.state.uiUrl,
+    video.state.width,
+    video.state.height,
+    video.state.preset,
+    video.state.videoBitrate,
+    video.state.buffSize,
+    video.state.audioBitrate,
+    video.state.qualityCF,
+    video.state.framerate,
+    video.state.gbuffer,
+    video.state.keyColor,
+    video.state.keySimilarity,
+    video.state.keyBlend,
+    video.state.args,
+  ]);
 
   const currentVideo = video.state.video;
   const currentPlaylist = playlists.find(p => p.id === video.state.video?.playlistKey);
@@ -236,47 +266,10 @@ export default function MdFile() {
               {stream.logs.map((log, index) => <div key={index}>{log}</div>)}
             </div>
           </Sheet>
-          {/* <Button size="l" onClick={() => video.apply({
-            events: [['reload']],
-          })}>
-            <div className="flex items-center gap-2">
-              <ArrowRotateLeft />
-              <div>
-                Перезагрузить
-              </div>
-            </div>
-          </Button> */}
+          <Button size="l" onClick={() => setConfigVisible(true)}>Конфиг</Button>
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="flex gap-2">
-            <TextInput
-              className="flex-1"
-              size="l"
-              placeholder="Ссылка на стрим"
-              value={url}
-              onUpdate={value => {
-                setUrl(value);
-              }}
-            />
-            <Button size="l" onClick={() => video.apply({
-              url: url,
-            })}>Сохранить</Button>
-          </div>
-          <div className="flex gap-2">
-            <TextInput
-              className="flex-1"
-              size="l"
-              placeholder="Ссылка на стрим"
-              value={uiUrl}
-              onUpdate={value => {
-                setUiUrl(value);
-              }}
-            />
-            <Button size="l" onClick={() => video.apply({
-              uiUrl: uiUrl,
-            })}>Сохранить</Button>
-          </div>
           <Card className="inline-flex items-center w-full py-3 px-4 gap-2 !rounded-lg" theme="info" view="filled" size="l">
             Видео: {currentVideo?.key || "<Нету>"}
           </Card>
@@ -369,10 +362,11 @@ export default function MdFile() {
               playlists?.map((playlist, index) => {
                 return <div key={playlist.id} id={playlist.id} className="flex flex-col gap-2 min-w-[400px]">
                   <Card className="flex items-center w-full py-2 gap-2 px-2 !rounded-lg" theme="info" view="filled" size="l">
-                    <TextInput size="l" placeholder="Ключ" value={playlist.name} onUpdate={value => {
-                      playlists[index].name = value;
-                      setPlaylists([...playlists]);
-                    }} />
+                    <TextInput
+                      size="l" placeholder="Ключ" value={playlist.name} onUpdate={value => {
+                        playlists[index].name = value;
+                        setPlaylists([...playlists]);
+                      }} />
                     <DropdownMenu
                       items={[
                         {
@@ -483,6 +477,137 @@ export default function MdFile() {
       <Overlay visible={video.loading || playlist.loading}>
         <Loader />
       </Overlay>
+      <Sheet visible={configVisible} onClose={() => setConfigVisible(false)}>
+        <div className="flex flex-col gap-2 container m-auto">
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ссылка на стрим"
+            value={config?.url}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, url: value }));
+            }}
+          />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ссылка на оверлей"
+            value={config?.uiUrl}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, uiUrl: value }));
+            }}
+          />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ширина (1920)"
+            value={config?.width}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, width: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Высота (1080)"
+            value={config?.height}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, height: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Пресет (ultrafast)"
+            value={config?.preset}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, preset: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Видео битрейт (10000k)"
+            value={config?.videoBitrate}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, videoBitrate: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Размер буфера (20000k)"
+            value={config?.buffSize}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, buffSize: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Аудио битрейт (128k)"
+            value={config?.audioBitrate}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, audioBitrate: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Качество (24)"
+            value={config?.qualityCF}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, qualityCF: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Фреймрейт (24)"
+            value={config?.framerate}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, framerate: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="GBuffer (48)"
+            value={config?.gbuffer}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, gbuffer: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ключ цвет (00FF00)"
+            value={config?.keyColor}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, keyColor: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ключ схожесть (0.45)"
+            value={config?.keySimilarity}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, keySimilarity: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Ключ смешивание (0.1)"
+            value={config?.keyBlend}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, keyBlend: value }));
+            }} />
+          <TextInput
+            className="w-full"
+            size="l"
+            placeholder="Дополнительные аргументы (Пусто)"
+            value={config?.args}
+            onUpdate={value => {
+              setConfig(state => ({ ...state, args: value }));
+            }} />
+          <Button
+            size="l"
+            onClick={() => video.apply({
+              ...config,
+            })}>Сохранить</Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

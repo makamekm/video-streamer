@@ -8,6 +8,20 @@ export interface State {
     defaultPlaylist?: string;
     currentTime?: number;
     seek?: number;
+
+    width?: string;
+    height?: string;
+    preset?: string;
+    videoBitrate?: string;
+    buffSize?: string;
+    audioBitrate?: string;
+    qualityCF?: string;
+    framerate?: string;
+    gbuffer?: string;
+    keyColor?: string;
+    keySimilarity?: string;
+    keyBlend?: string;
+    args?: string;
 }
 
 export interface PlaylistState {

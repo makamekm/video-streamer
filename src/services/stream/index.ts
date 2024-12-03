@@ -2,59 +2,71 @@ import 'dotenv/config';
 
 import { $ } from 'zx';
 import ffmpeg from "fluent-ffmpeg";
-const { StreamInput, StreamOutput } = require('fluent-ffmpeg-multistream');
-import { PassThrough, Readable, Transform } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import { launch, getStream } from "puppeteer-stream";
 import { type Page } from "puppeteer-core";
 import { executablePath } from "puppeteer";
 import { resolve } from 'path';
 import { getStorage } from "../../app/api/storage";
 import { nextVideo } from '../../app/api/read';
-import { State, Video } from '../../app/state';
+import { type State, type Video } from '../../app/state';
 
-// width: 1600,
-// height: 900,
 const OUT_TMP_FOLDER = 'tmp';
 const OUT_TMP_FILE_STREAM = 'out.m3u8';
 const OUT_TMP_STREAM = `${OUT_TMP_FOLDER}/${OUT_TMP_FILE_STREAM}`;
-const OUT_TS_REGEXP = /^out\d+\.ts$/;
 const STATE_PATH = 'state.json';
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
-// const WIDTH = 1600;
-// const HEIGHT = 900;
-// const WIDTH = 1280;
-// const HEIGHT = 720;
-// const WIDTH = 720;
-// const HEIGHT = 480;
+const WIDTH = '1920';
+const HEIGHT = '1080';
+// const WIDTH = '1600';
+// const HEIGHT = '900';
+// const WIDTH = '1280';
+// const HEIGHT = '720';
+// const WIDTH = '720';
+// const HEIGHT = '480';
+
+const PRESET = 'ultrafast';
 const VIDEO_BITRATE = '10000k';
+const BUFF_SIZE = '20000k';
 const AUDIO_BITRATE = '128k';
+const QUALITY_CF = '24';
+
+const THREADS = '1';
 const FRAMERATE = '24';
 const GBUFFER = '48';
-const BUFF_SIZE = '20000k';
-const QUALITY_MAIN_CF = '21';
-const QUALITY_SUB_CF = '21';
 
 const RESTART_TIMEOUT = 60000;
 
 let page: Page;
 
-async function createWebStream(url: string) {
+async function updateUI(selector: string) {
+    try {
+        const elements = await page?.$$(selector);
+        for (const element of elements) {
+            // const elementText = await page.evaluate(element => element?.outerHTML, element);
+            // console.log(elementText);
+            await element.click();
+        }
+    } catch (error) {
+        //
+    }
+}
+
+async function createWebStream(state: State) {
     const browser = await launch({
         executablePath: executablePath(),
         headless: "new",
         userDataDir: resolve(`./${OUT_TMP_FOLDER}/chrome_${(Math.random() * 1_000_000).toFixed()}`),
         defaultViewport: {
-            width: WIDTH,
-            height: HEIGHT,
+            width: Number(state.width || WIDTH),
+            height: Number(state.height || HEIGHT),
         },
         args: ['--enable-gpu', '--no-sandbox'],
         // args: ['--no-sandbox'],
     });
 
     page = await browser.newPage();
-    await page.goto(url);
+    await page.goto(state.uiUrl || "http://localhost:3000/stream");
     return await getStream(page, {
         audio: true,
         video: true,
@@ -66,18 +78,18 @@ async function createWebStream(url: string) {
     });
 }
 
-function toTime(totalSeconds?: number | null) {
-    totalSeconds = totalSeconds ?? 0;
-    const hours = Math.floor(totalSeconds / 3600);
-    totalSeconds %= 3600;
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = Math.round(totalSeconds % 60);
-    return [hours, minutes, seconds]
-        .map(v => v < 10 ? "0" + v : v)
-        .join(":");
-}
+// function toTime(totalSeconds?: number | null) {
+//     totalSeconds = totalSeconds ?? 0;
+//     const hours = Math.floor(totalSeconds / 3600);
+//     totalSeconds %= 3600;
+//     const minutes = Math.floor(totalSeconds / 60);
+//     const seconds = Math.round(totalSeconds % 60);
+//     return [hours, minutes, seconds]
+//         .map(v => v < 10 ? "0" + v : v)
+//         .join(":");
+// }
 
-async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress?: Function) {
+async function createSimpleStream(state: State, stream: Readable, onEnd?: Function, onProgress?: Function) {
     const cmd = new Promise<ffmpeg.FfmpegCommand>(async r => {
         let resolved = false;
         const command = ffmpeg()
@@ -102,8 +114,10 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 'libx264',
                 '-c:a',
                 'mp3',
+                '-threads',
+                THREADS,
                 '-preset',
-                'ultrafast',
+                state.preset || PRESET,
                 // '-tune',
                 // 'zerolatency',
                 '-tune',
@@ -138,17 +152,17 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '-reorder_queue_size',
                 '1024',
                 '-s',
-                `${WIDTH}x${HEIGHT}`,
+                `${state.width || WIDTH}x${state.height || HEIGHT}`,
                 '-framerate',
-                FRAMERATE,
+                state.framerate || FRAMERATE,
                 '-b:v',
-                VIDEO_BITRATE,
+                state.videoBitrate || VIDEO_BITRATE,
                 '-b:a',
-                AUDIO_BITRATE,
+                state.audioBitrate || AUDIO_BITRATE,
                 '-bufsize',
-                BUFF_SIZE,
+                state.buffSize || BUFF_SIZE,
                 '-maxrate',
-                VIDEO_BITRATE,
+                state.videoBitrate || VIDEO_BITRATE,
                 '-analyzeduration',
                 '0',
                 '-probesize',
@@ -156,9 +170,9 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '-fflags',
                 '-nobuffer',
                 '-g',
-                GBUFFER,
+                state.gbuffer || GBUFFER,
                 '-crf',
-                QUALITY_SUB_CF,
+                state.qualityCF || QUALITY_CF,
                 '-ar',
                 '44100',
                 '-ac',
@@ -168,6 +182,7 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
                 '-attempt_recovery',
                 '1',
                 '-recover_any_error 1',
+                ...(state.args?.split(' ')?.filter(Boolean) ?? []),
             ])
             .on('codecData', async (commandLine) => {
             })
@@ -207,31 +222,12 @@ async function createSimpleStream(stream: Readable, onEnd?: Function, onProgress
     return await cmd;
 }
 
-async function clearTmpJob() {
-    while (true) {
-        try {
-            await new Promise(r => setTimeout(r, 10000));
-            const text = (await $`cat ${OUT_TMP_STREAM} || echo ''`).toString();
-            const files = (await $`ls ./${OUT_TMP_FOLDER}`).toString().split('\n').filter(f => OUT_TS_REGEXP.test(f));
-
-            for (const file of files) {
-                if (!text.includes(file)) {
-                    await $`rm -rf ./${OUT_TMP_FOLDER}/${file}`
-                }
-            }
-        } catch (error) {
-            //
-        }
-    }
-}
-
 async function clearTmp() {
     await $`killall chrome || true`;
     await $`rm -rf ./${OUT_TMP_FOLDER} || true`;
-    // clearTmpJob();
 }
 
-async function createStream(url: string, webStream: Transform, onEnd?: Function, onProgress?: Function) {
+async function createStream(state: State, webStream: Transform, onEnd?: Function, onProgress?: Function) {
     const command = ffmpeg()
         .input(webStream)
         .inputOptions([
@@ -258,24 +254,24 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-re',
         ])
         // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
-        .output(url)
+        .output(state.url!)
         // .output("rtmp://localhost:1935/sdfsdf")
         // http://192.168.0.209:/sdfsdf/index.m3u8
         // .flvmeta()
         .format('flv')
         .complexFilter([
             {
-                filter: `scale=${WIDTH}:${HEIGHT}`,
+                filter: `scale=${state.width || WIDTH}:${state.height || HEIGHT}`,
                 inputs: "[0:v]",
                 outputs: "[ckoutsize]",
             },
             {
-                filter: `scale=${WIDTH}:${HEIGHT}`,
+                filter: `scale=${state.width || WIDTH}:${state.height || HEIGHT}`,
                 inputs: "[1:v]",
                 outputs: "[outsize]",
             },
             {
-                filter: "colorkey=0x00FF00:0.45:0.1:",
+                filter: `colorkey=0x${state.keyColor || '00FF00'}:${state.keySimilarity || '0.45'}:${state.keyBlend || '0.1'}:`,
                 inputs: "[ckoutsize]",
                 outputs: "[ckout]",
             },
@@ -292,8 +288,10 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             'libx264',
             '-c:a',
             'mp3',
+            '-threads',
+            THREADS,
             '-preset',
-            'ultrafast',
+            state.preset || PRESET,
             '-movflags',
             '+faststart',
             // '-filter_complex',
@@ -317,17 +315,17 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-reorder_queue_size',
             '1024',
             '-s',
-            `${WIDTH}x${HEIGHT}`,
+            `${state.width || WIDTH}x${state.height || HEIGHT}`,
             '-framerate',
-            FRAMERATE,
+            state.framerate || FRAMERATE,
             '-b:v',
-            VIDEO_BITRATE,
+            state.videoBitrate || VIDEO_BITRATE,
             '-b:a',
-            AUDIO_BITRATE,
+            state.audioBitrate || AUDIO_BITRATE,
             '-bufsize',
-            BUFF_SIZE,
+            state.buffSize || BUFF_SIZE,
             '-maxrate',
-            VIDEO_BITRATE,
+            state.videoBitrate || VIDEO_BITRATE,
             '-analyzeduration',
             '0',
             '-probesize',
@@ -335,9 +333,9 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-fflags',
             '-nobuffer',
             '-g',
-            GBUFFER,
+            state.gbuffer || GBUFFER,
             '-crf',
-            QUALITY_MAIN_CF,
+            state.qualityCF || QUALITY_CF,
             '-ar',
             '44100',
             '-ac',
@@ -351,6 +349,7 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             '-attempt_recovery',
             '1',
             '-recover_any_error 1',
+            ...(state.args?.split(' ')?.filter(Boolean) ?? []),
         ])
         .on('start', (commandLine) => {
             console.log('Spawned Ffmpeg with command: ' + commandLine);
@@ -359,8 +358,6 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
             onEnd?.();
             console.error('Error:', err.message);
             console.error(err);
-            // webStream?.destroy();
-            // process.exit(1);
         })
         .on('progress', async (progress) => {
             onProgress?.(progress.timemark);
@@ -369,60 +366,15 @@ async function createStream(url: string, webStream: Transform, onEnd?: Function,
         .on('end', () => {
             onEnd?.();
             console.log("end!");
-            // process.exit(1);
         });
 
     return command;
 }
 
-// async function applyEvents(state: State) {
-//     let changed = false;
-//     let event = state.events?.shift();
-
-//     if (event != null) {
-//         //   await apply({
-//         //     events: state.events,
-//         //   });
-//         changed = true;
-//     }
-
-//     while (event != null) {
-//         const [type, ...args] = event;
-//         switch (type) {
-//             case 'reload':
-//                 //   window.location.href = window.location.href;
-//                 break;
-//             case 'update':
-//                 //   setState(args[0]);
-//                 //   setCounter(counter + 1);
-//                 break;
-//             case 'refresh':
-//                 //   setCounter(counter + 1);
-//                 break;
-//             default:
-//                 console.error('Not event implemented', ...event);
-//         }
-
-//         event = state.events?.shift();
-//         if (event != null) {
-//             // await apply({
-//             //   events: [],
-//             // });
-//             changed = true;
-//         }
-//     }
-
-//     return {
-//         state,
-//         changed,
-//     };
-// }
-
 async function getState(finish = false) {
     const storage = await getStorage();
 
     let state = await storage.readJSON<State>(STATE_PATH, {
-        // events: [],
         played: [],
     });
 
@@ -442,17 +394,9 @@ async function run() {
     const cmd = await getState();
     let state = cmd.state;
 
-    // const webStream = await createWebStream("http://localhost:3000/stream");
-    const webStream = await createWebStream(state.uiUrl || "https://www.figma.com/proto/A5pSlrVoxeEX7368ZA1dgp/%D0%A1%D1%82%D1%80%D0%B8%D0%BC---%D0%9F%D1%83%D1%82%D0%B5%D1%88%D0%B5%D1%81%D1%82%D0%B2%D0%B8%D1%8F?node-id=4-9&node-type=canvas&t=flYAcaWiMCFUB0O0-0&scaling=contain&content-scaling=responsive&page-id=0%3A1&hotspot-hints=0&disable-default-keyboard-nav=1&hide-ui=1");
-    // const webEmptyStream = await createWebStream("http://localhost:3000/empty");
-    // const webEmptyStreamPass = new PassThrough();
-    // webEmptyStream.pipe(webEmptyStreamPass);
+    const webStream = await createWebStream(state);
 
     let subCommand: ffmpeg.FfmpegCommand;
-
-    // subCommand = await createSimpleStream(webEmptyStreamPass, () => {
-    //     // setTimeout(() => update(true), 0);
-    // });
 
     let fileStream: Readable | null;
     let currentVideo: Video | null | undefined = null;
@@ -472,7 +416,6 @@ async function run() {
                 fileStream = null;
                 fileStream = await storage.read(currentVideo?.key);
             } else {
-                // webEmptyStream?.unpipe();
                 fileStream?.unpipe();
                 fileStream?.destroy();
                 fileStream = null;
@@ -480,54 +423,22 @@ async function run() {
 
             try {
                 subCommand?.kill("SIGTERM");
+                // (subCommand as any)?.ffmpegProc.stdin.write('q');
             } catch (error) {
                 //
             }
-            // try {
-            //     // (subCommand as any)?.ffmpegProc.stdin.write('q');
-            // } catch (error) {
-            //     console.log(error);
-            //     //
-            // }
-
-            // await $`rm -rf ./${OUT_TMP_FOLDER}/*.ts || true`;
-            // await $`rm -rf ./${OUT_TMP_STREAM} || true`;
 
             if (fileStream) {
-                // fileStream.pipe(webEmptyStreamPass);
-
                 console.log(currentVideo?.key);
 
-                subCommand = await createSimpleStream(fileStream, () => {
+                subCommand = await createSimpleStream(state, fileStream, () => {
                     setTimeout(() => update(true), 0);
                 });
-
-                // subCommand.input(fileStream);
-            } else {
-                // webEmptyStream.pipe(webEmptyStreamPass);
-                // fileStream.pipe(webEmptyStreamPass);
-                // subCommand = await createSimpleStream(webEmptyStreamPass);
-                // subCommand.input(webEmptyStreamPass);
             }
-
-            // runCommand(fileStream);
         }
     }
 
     await update();
-
-    async function updateUI(selector: string) {
-        try {
-            const elements = await page?.$$(selector);
-            for (const element of elements) {
-                // const elementText = await page.evaluate(element => element?.outerHTML, element);
-                // console.log(elementText);
-                await element.click();
-            }
-        } catch (error) {
-            //
-        }
-    }
 
     setInterval(() => {
         update();
@@ -545,14 +456,14 @@ async function run() {
         if (started && ((time + RESTART_TIMEOUT) < +new Date())) {
             started = false;
             time = +new Date();
-            runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream, () => {
+            runCommand(state, webStream, () => {
                 started = true;
                 time = +new Date();
             });
         }
     }, 5000);
 
-    await runCommand(state.url || "rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy", webStream, () => {
+    await runCommand(state, webStream, () => {
         started = true;
         time = +new Date();
     });
@@ -560,17 +471,16 @@ async function run() {
 
 let command: ffmpeg.FfmpegCommand;
 
-async function runCommand(url: string, webStream: Transform, onProgress?: Function) {
+async function runCommand(state: State, webStream: Transform, onProgress?: Function) {
     try {
         command?.kill("SIGTERM");
     } catch (error) {
         //
     }
 
-    command = await createStream(url, webStream, () => {
-        runCommand(url, webStream, onProgress);
+    command = await createStream(state, webStream, () => {
+        runCommand(state, webStream, onProgress);
     });
-    // command = await createStream(fileStream, onEnd);
 
     command.run();
 }
