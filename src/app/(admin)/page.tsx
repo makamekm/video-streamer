@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Button, Card, DropdownMenu, Loader, Overlay, Select, Sheet, Switch, TextInput
+  Button, Card, DropdownMenu, Select, Sheet, TextInput
 
 } from '@gravity-ui/uikit';
 import { Equal, Ellipsis, Plus, Stop, ArrowRight, Play } from '@gravity-ui/icons';
