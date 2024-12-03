@@ -319,6 +319,9 @@ export default function MdFile() {
           </div> */}
           <div className="flex flex-wrap gap-2">
             <Button size="l" onClick={() => modalFromFolder.current?.open()}>Плейлист из папки</Button>
+            <Button size="l" onClick={() => playlist.apply({
+              playlists,
+            })}>Сохранить плейлисты</Button>
           </div>
         </div>
 
@@ -464,19 +467,11 @@ export default function MdFile() {
             </DragOverlay>
           </DndContext>
         </div>
-        <div className="flex items-center justify-center w-full gap-2">
-          <Button size="l" onClick={() => playlist.apply({
-            playlists,
-          })}>Сохранить</Button>
-        </div>
       </div>
       <ModalFromFolder update={(data) => {
         playlist.setState(data);
         setPlaylists(data.playlists ?? playlists);
       }} ref={modalFromFolder} />
-      <Overlay visible={video.loading || playlist.loading}>
-        <Loader />
-      </Overlay>
       <Sheet visible={configVisible} onClose={() => setConfigVisible(false)}>
         <div className="flex flex-col gap-2 container m-auto">
           <TextInput
@@ -608,6 +603,9 @@ export default function MdFile() {
             })}>Сохранить</Button>
         </div>
       </Sheet>
+      {/* <Overlay visible={video.loading || playlist.loading}>
+        <Loader />
+      </Overlay> */}
     </div>
   );
 }
