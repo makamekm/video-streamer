@@ -120,9 +120,9 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
 }
 
 export const useMetaState = (url: string | undefined | null, body: any, defaultValue: any, deps: DependencyList = []) => {
-  const [state, setState] = useState(defaultValue);
-  const [loading, setLoading] = useState(true);
-  const [inited, setInited] = useState(false);
+  const [state, setState] = useState(() => defaultValue);
+  const [loading, setLoading] = useState(() => true);
+  const [inited, setInited] = useState(() => false);
 
   const load = useCallback(async () => {
     if (!url) return;
@@ -169,7 +169,7 @@ export const useVideoMetaState = (key: string | undefined) => {
 }
 
 export const useVideoState = (body?: any) => {
-  const [state, setState] = useState<State>({});
+  const [state, setState] = useState<State>(() => ({}));
   const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
   }, []);
@@ -209,8 +209,8 @@ export const useVideoState = (body?: any) => {
 }
 
 export const useStreamState = (body?: any) => {
-  const [logs, setLogs] = useState<string[]>([]);
-  const [active, setActive] = useState<boolean>(false);
+  const [logs, setLogs] = useState<string[]>(() => []);
+  const [active, setActive] = useState<boolean>(() => false);
   const fn = useCallback((value: any) => {
     setLogs(logs => [
       ...logs,
@@ -241,9 +241,9 @@ export const useStreamState = (body?: any) => {
 }
 
 export const useFSState = () => {
-  const [logs, setLogs] = useState<string[]>([]);
-  const [port, setPort] = useState<number | null>(null);
-  const [active, setActive] = useState<boolean>(true);
+  const [logs, setLogs] = useState<string[]>(() => []);
+  const [port, setPort] = useState<number | null>(() => null);
+  const [active, setActive] = useState<boolean>(() => true);
   const fn = useCallback((value: any) => {
     try {
       const json = JSON.parse(value);
@@ -284,7 +284,7 @@ export const useFSState = () => {
 }
 
 export const usePlaylistState = (body?: PlaylistState) => {
-  const [state, setState] = useState<PlaylistState>({});
+  const [state, setState] = useState<PlaylistState>(() => ({}));
   const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
   }, []);
@@ -311,7 +311,7 @@ export const usePlaylistState = (body?: PlaylistState) => {
 }
 
 export const useTorrentState = (body?: any) => {
-  const [state, setState] = useState<TorrentState>({});
+  const [state, setState] = useState<TorrentState>(() => ({}));
   const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
   }, []);
