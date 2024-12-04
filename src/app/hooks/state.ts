@@ -161,7 +161,7 @@ export const useMetaState = (url: string | undefined | null, body: any, defaultV
 }
 
 export const useVideoMetaState = (key: string | undefined) => {
-  const serverState = useMetaState(key ? `/api/video/state/meta?path=${key}` : null, {}, {});
+  const serverState = useMetaState(key ? `/api/video/state/meta?path=${key}` : null, undefined, {});
 
   return {
     ...serverState,
