@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from "react";
-import { TableDataItem, TableActionConfig } from '@gravity-ui/uikit';
+import { TableDataItem, TableActionConfig, Overlay } from '@gravity-ui/uikit';
 import { useFSState } from "@/app/hooks/state";
 
 export default function Home() {
@@ -20,7 +20,7 @@ export default function Home() {
         {
           stream.port != null
             ? <iframe className="flex-1 w-full" src={`http://${url}:${stream.port}/`} />
-            : null
+            : <Overlay className="flex-1 w-full" visible />
         }
       </div>
     </div>
