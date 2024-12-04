@@ -5,12 +5,15 @@ import { $, ProcessPromise } from 'zx';
 import getPort from 'get-port';
 
 const LOCAL_PATH = resolve('./files');
+const TMP_PATH = resolve('./tmp');
 
+let isProcess = false;
 let port: number | null;
 let process: ProcessPromise | null;
 let signalController: AbortController | null;
 
 export async function DELETE(req: NextRequest) {
+  isProcess = false;
   signalController?.abort("0");
   process?.kill();
   process = null;
@@ -29,22 +32,31 @@ export async function POST(req: NextRequest) {
   let controller: ReadableStreamDefaultController<any> | null;
   const emit = (data: any) => {
     controller?.enqueue(encoder.encode(JSON.stringify(data) + '\n'));
+    console.log("controller?.enqueue", controller?.enqueue, data);
   }
 
   signalController = signalController ?? new AbortController();
 
-  if (!process) {
+  if (!isProcess) {
+    isProcess = true;
     port = await getPort({ port: 8080 });
-    process = $({ signal: signalController?.signal })`filebrowser -a 0.0.0.0 -p ${port} --noauth -r ${LOCAL_PATH}`;
+    await $`mkdir -p ${LOCAL_PATH}`;
+    await $`mkdir -p ${TMP_PATH}`;
+    process = $({ signal: signalController?.signal })`filebrowser -a 0.0.0.0 -p ${port} --noauth -r ${LOCAL_PATH} -d ${TMP_PATH}/filebrowser_${port}.db`;
   }
 
-  process.finally(() => {
+  process?.catch(e => {
+    emit({
+      log: e.message?.toString(),
+    });
+  }).finally(() => {
+    isProcess = false;
     controller = null;
   });
 
   const stream = new PassThrough();
 
-  process.pipe(stream);
+  process?.pipe(stream);
 
   stream.on('data', (chunk) => {
     emit({
@@ -52,11 +64,13 @@ export async function POST(req: NextRequest) {
     });
   });
 
-  emit({
-    port: port,
-  });
-
   const watch = async () => {
+    await new Promise(r => setTimeout(r, 1000));
+
+    emit({
+      port: port,
+    });
+
     while (true) {
       if (!controller) break;
       await new Promise(r => setTimeout(r, 5000));
