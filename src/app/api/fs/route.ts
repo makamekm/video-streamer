@@ -2,9 +2,11 @@ import { type NextRequest } from 'next/server';
 import { resolve } from 'path';
 import { PassThrough } from 'stream';
 import { $, ProcessPromise } from 'zx';
+import getPort from 'get-port';
 
 const LOCAL_PATH = resolve('./files');
 
+let port: number | null;
 let process: ProcessPromise | null;
 let signalController: AbortController | null;
 
@@ -26,12 +28,15 @@ export async function POST(req: NextRequest) {
 
   let controller: ReadableStreamDefaultController<any> | null;
   const emit = (data: any) => {
-    controller?.enqueue(encoder.encode(data));
+    controller?.enqueue(encoder.encode(JSON.stringify(data) + '\n'));
   }
 
   signalController = signalController ?? new AbortController();
 
-  process = process ?? $({ signal: signalController?.signal })`filebrowser -a 0.0.0.0 --noauth -r ${LOCAL_PATH}`;
+  if (!process) {
+    port = await getPort({ port: 8080 });
+    process = $({ signal: signalController?.signal })`filebrowser -a 0.0.0.0 -p ${port} --noauth -r ${LOCAL_PATH}`;
+  }
 
   process.finally(() => {
     controller = null;
@@ -42,7 +47,13 @@ export async function POST(req: NextRequest) {
   process.pipe(stream);
 
   stream.on('data', (chunk) => {
-    emit(Buffer.from(chunk).toString('utf8'));
+    emit({
+      log: Buffer.from(chunk).toString('utf8'),
+    });
+  });
+
+  emit({
+    port: port,
   });
 
   const watch = async () => {

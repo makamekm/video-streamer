@@ -239,12 +239,22 @@ export const useStreamState = (body?: any) => {
 
 export const useFSState = () => {
   const [logs, setLogs] = useState<string[]>([]);
+  const [port, setPort] = useState<number | null>(null);
   const [active, setActive] = useState<boolean>(true);
   const stream = useServerState("/api/fs", active, {}, value => {
-    setLogs(logs => [
-      ...logs,
-      value,
-    ])
+    try {
+      const json = JSON.parse(value);
+      if (json.logs) {
+        setLogs(logs => [
+          ...logs,
+          value,
+        ]);
+      } else if (json.port) {
+        setPort(json.port);
+      }
+    } catch (error) {
+      //
+    }
   });
 
   const stop = async () => {
@@ -264,6 +274,7 @@ export const useFSState = () => {
     stop,
     active,
     setActive,
+    port,
     logs,
   };
 }
