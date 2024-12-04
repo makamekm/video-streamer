@@ -464,17 +464,11 @@ async function run() {
         }
     }, 5000);
 
-    setInterval(() => {
-        const avgLoad = os.loadavg();
+    setInterval(async () => {
         const totalMem = os.totalmem() / 1073741824;
         const freeMem = os.freemem() / 1073741824;
-        console.log("Load average (1 minute): "
-            + String(avgLoad[0]));
-        console.log("Load average (5 minute): "
-            + String(avgLoad[1]));
-        console.log("Load average (15 minute): "
-            + String(avgLoad[2]));
         console.log(`Memory: ${freeMem} Gb / ${totalMem} Gb`);
+        console.log((await $`top -bin1 | tail -10`).text());
     }, 3000);
 
     await runCommand(state, webStream, () => {
