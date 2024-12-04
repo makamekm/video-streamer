@@ -8,18 +8,19 @@ import { join, resolve } from 'path';
 import { Readable } from 'stream';
 import { getStorage } from '../../storage';
 
+async function stream2Buffer(stream: Readable) {
+  return new Promise<Buffer>((resolve, reject) => {
+    const _buf: any[] = [];
+    stream.on("data", (chunk) => _buf.push(chunk));
+    stream.on("end", () => resolve(Buffer.concat(_buf)));
+    stream.on("error", (err) => reject(err));
+  });
+}
+
 // curl -X POST -H "Content-Type: application/json" -d '{}' http://localhost:3000/api/torrent/load
 export async function POST(req: NextRequest) {
-  const bucket = req.nextUrl.searchParams.get('bucket') ?? process.env.STORAGE_BUCKET;
   const body = await req.json() ?? {};
   const path = body.path ?? 'videos';
-
-  if (!bucket) {
-    return Response.json(
-      { success: false, message: 'no bucket' },
-      { status: 404 },
-    );
-  }
 
   // Obtain the conversation messages from request's body
   // const { messages = [] } = await request.json();
@@ -30,9 +31,18 @@ export async function POST(req: NextRequest) {
     controller?.enqueue(encoder.encode(JSON.stringify(data) + '\n'));
   }
 
+  const storage = await getStorage();
+
+  let link = body.magnet;
+
+  if (!link.startsWith('magnet:')) {
+    const readable = await storage.read(link);
+    link = await stream2Buffer(readable);
+  }
+
   let engine: TorrentStream.TorrentEngine | null = torrentStream(
     // 'magnet:?xt=urn:btih:E1894EBB466DF3400EFB3E7DEC508D78BE973C14&tr=http%3A%2F%2Fbt2.t-ru.org%2Fann%3Fmagnet&dn=%D0%93%D0%BE%D0%BB%D1%8B%D0%B9%20%D0%9F%D0%B8%D1%81%D1%82%D0%BE%D0%BB%D0%B5%D1%82%3A%20%D0%98%D0%B7%20%D0%90%D1%80%D1%85%D0%B8%D0%B2%D0%BE%D0%B2%20%D0%9F%D0%BE%D0%BB%D0%B8%D1%86%D0%B8%D0%B8!%20%2F%20The%20Naked%20Gun%3A%20From%20the%20Files%20of%20Police%20Squad!%20(%D0%94%D1%8D%D0%B2%D0%B8%D0%B4%20%D0%A6%D1%83%D0%BA%D0%B5%D1%80%20%2F%20David%20Zucker)%20%5B1988%2C%20%D0%A1%D0%A8%D0%90%2C%20%D0%BA%D0%BE%D0%BC%D0%B5%D0%B4%D0%B8%D1%8F%2C%20HDRip-AVC%5D%20VO%20(',
-    body.magnet,
+    link,
     {
       tmp: resolve(process.env.TMP_FOLDER ?? './torrent-tmp'),
     },
