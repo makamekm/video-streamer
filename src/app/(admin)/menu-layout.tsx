@@ -29,7 +29,7 @@ export default function MenuLayout({
     },
     {
       id: 's3',
-      title: 'Диски S3',
+      title: 'Диск',
       icon: FloppyDisk,
       link: '/s3',
       onItemClick(item, collapsed, event) {
@@ -39,19 +39,19 @@ export default function MenuLayout({
       },
       current: pathname === '/s3',
     },
-    // {
-    //   id: 'torrent',
-    //   title: 'Торрент',
-    //   icon: Archive,
-    //   link: '/torrent',
-    //   onItemClick(item, collapsed, event) {
-    //     event.preventDefault();
-    //     event.stopPropagation();
-    //     router.push('/torrent');
-    //   },
-    //   current: pathname === '/torrent',
-    // },
-  ], [pathname]);
+    {
+      id: 'torrent',
+      title: 'Торрент',
+      icon: Archive,
+      link: '/torrent',
+      onItemClick(item, collapsed, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        router.push('/torrent');
+      },
+      current: pathname === '/torrent',
+    },
+  ], [pathname, router]);
 
   return (
     <PageLayout compact={compact}>
