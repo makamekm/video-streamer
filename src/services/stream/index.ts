@@ -465,9 +465,6 @@ async function run() {
     }, 5000);
 
     setInterval(async () => {
-        const totalMem = os.totalmem() / 1073741824;
-        const freeMem = os.freemem() / 1073741824;
-        console.log(`Memory: ${freeMem} Gb / ${totalMem} Gb`);
         console.log((await $`top -bin1 | tail -10`).text());
     }, 3000);
 
