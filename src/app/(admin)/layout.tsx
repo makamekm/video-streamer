@@ -29,8 +29,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Diplodoc Админка",
-  description: "Diplodoc Админка для дежурных",
+  title: "Стриминг видео",
+  description: "Админка для стриминга видео",
 };
 
 export default function RootLayout({

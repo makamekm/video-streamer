@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import {getRootClassName} from '@gravity-ui/uikit/server';
@@ -27,8 +28,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Diplodoc Админка",
-  description: "Diplodoc Админка для дежурных",
+  title: "Стриминг видео",
+  description: "Админка для стриминга видео",
 };
 
 export default function RootLayout({
@@ -37,18 +38,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ThemeProvider theme={theme}>
-      <html lang="en" className={rootClassName}>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
-        >
-          <ToasterProvider>
-            {children}
-            <ToasterComponent />
-          </ToasterProvider>
-          <Loading theme="dark" />
-        </body>
-      </html>
-    </ThemeProvider>
+    <Suspense>
+      <ThemeProvider theme={theme}>
+        <html lang="en" className={rootClassName}>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black`}
+          >
+            <ToasterProvider>
+              {children}
+              <ToasterComponent />
+            </ToasterProvider>
+            <Loading theme="dark" />
+          </body>
+        </html>
+      </ThemeProvider>
+    </Suspense>
   );
 }
