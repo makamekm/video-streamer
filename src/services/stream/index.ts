@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import os from 'os';
 import { $ } from 'zx';
 import ffmpeg from "fluent-ffmpeg";
 import { Readable, Transform } from "node:stream";
@@ -462,6 +463,19 @@ async function run() {
             });
         }
     }, 5000);
+
+    setInterval(() => {
+        const avgLoad = os.loadavg();
+        const totalMem = os.totalmem() / 1073741824;
+        const freeMem = os.freemem() / 1073741824;
+        console.log("Load average (1 minute): "
+            + String(avgLoad[0]));
+        console.log("Load average (5 minute): "
+            + String(avgLoad[1]));
+        console.log("Load average (15 minute): "
+            + String(avgLoad[2]));
+        console.log(`Memory: ${freeMem} Gb / ${totalMem} Gb`);
+    }, 3000);
 
     await runCommand(state, webStream, () => {
         started = true;
