@@ -259,7 +259,7 @@ export const useFSState = () => {
       //
     }
   }, []);
-  const stream = useServerState("/api/fs", active, {}, fn);
+  const stream = useServerState("/api/fs", active, undefined, fn);
 
   const stop = async () => {
     setActive(false);
