@@ -248,7 +248,7 @@ export default function MdFile() {
               </div>
             </div>
           </Button>
-          <Button size="l" onClick={() => stream.setActive(true)} disabled={stream.active}>
+          <Button size="l" onClick={() => stream.setActive(true)} disabled={stream.active || !config?.url || !config?.uiUrl}>
             <div className="flex items-center gap-2">
               <Play />
               <div>
@@ -477,7 +477,7 @@ export default function MdFile() {
         setPlaylists(data.playlists ?? playlists);
       }} ref={modalFromFolder} />
       <Sheet visible={configVisible} onClose={() => setConfigVisible(false)}>
-        <div className="flex flex-col gap-2 container m-auto">
+        <div className="flex flex-col gap-2 container m-auto p-2">
           <TextInput
             className="w-full"
             size="l"

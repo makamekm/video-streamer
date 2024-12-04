@@ -16,7 +16,7 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
     reader: null,
     response: null,
     abortController: null,
-  }), [body, counter]);
+  }), []);
 
   const startListening = useCallback(async () => {
     controllState.isListening = true;
@@ -78,7 +78,7 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
 
     controllState.reader = null;
     controllState.isListening = false;
-  }, [controllState, url, ...deps]);
+  }, [body, controllState, fn, url]);
 
   const updateState = useCallback(async () => {
     if (active) {
@@ -91,7 +91,8 @@ export const useServerState = (url: string, active: boolean, body: any, fn: (dat
       controllState.reader?.cancel();
       controllState.reader = null;
     }
-  }, [controllState, counter, startListening, active]);
+    counter;
+  }, [controllState, startListening, active, counter]);
 
   useEffect(() => {
     updateState();
@@ -144,7 +145,7 @@ export const useMetaState = (url: string | undefined | null, body: any, defaultV
       setLoading(false);
       setInited(true);
     }
-  }, [url, ...deps]);
+  }, [url, body, ...deps]);
 
   useEffect(() => {
     load();
@@ -169,9 +170,10 @@ export const useVideoMetaState = (key: string | undefined) => {
 
 export const useVideoState = (body?: any) => {
   const [state, setState] = useState<State>({});
-  const serverState = useServerState("/api/video/state/get", true, body, value => {
+  const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
-  });
+  }, []);
+  const serverState = useServerState("/api/video/state/get", true, body, fn);
 
   const apply = async (state: State) => {
     const response = await fetch("/api/video/state/set", {
@@ -209,12 +211,13 @@ export const useVideoState = (body?: any) => {
 export const useStreamState = (body?: any) => {
   const [logs, setLogs] = useState<string[]>([]);
   const [active, setActive] = useState<boolean>(false);
-  const stream = useServerState("/api/stream", active, body, value => {
+  const fn = useCallback((value: any) => {
     setLogs(logs => [
       ...logs,
       value,
     ])
-  });
+  }, []);
+  const stream = useServerState("/api/stream", active, body, fn);
 
   const stop = async () => {
     setActive(false);
@@ -241,7 +244,7 @@ export const useFSState = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [port, setPort] = useState<number | null>(null);
   const [active, setActive] = useState<boolean>(true);
-  const stream = useServerState("/api/fs", active, {}, value => {
+  const fn = useCallback((value: any) => {
     try {
       const json = JSON.parse(value);
       if (json.logs) {
@@ -255,7 +258,8 @@ export const useFSState = () => {
     } catch (error) {
       //
     }
-  });
+  }, []);
+  const stream = useServerState("/api/fs", active, {}, fn);
 
   const stop = async () => {
     setActive(false);
@@ -281,9 +285,10 @@ export const useFSState = () => {
 
 export const usePlaylistState = (body?: PlaylistState) => {
   const [state, setState] = useState<PlaylistState>({});
-  const serverState = useServerState("/api/playlist/state/get", true, body, value => {
+  const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
-  });
+  }, []);
+  const serverState = useServerState("/api/playlist/state/get", true, body, fn);
 
   const apply = async (state: PlaylistState) => {
     const response = await fetch("/api/playlist/state/set", {
@@ -307,9 +312,10 @@ export const usePlaylistState = (body?: PlaylistState) => {
 
 export const useTorrentState = (body?: any) => {
   const [state, setState] = useState<TorrentState>({});
-  const serverState = useServerState("/api/torrent/state/get", true, body, value => {
+  const fn = useCallback((value: any) => {
     setState(JSON.parse(value));
-  },);
+  }, []);
+  const serverState = useServerState("/api/torrent/state/get", true, body, fn);
 
   const apply = async (state: State) => {
     const response = await fetch("/api/video/state/set", {
