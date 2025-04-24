@@ -6,6 +6,9 @@
     "dev": "next dev",
     "build": "rm -rf tmp && next build",
     "start": "next start",
+    "install": "sh install.sh",
+    "stop": "sh stop.sh",
+    "restart": "sh restart.sh",
     "lint": "next lint",
     "stream": "npx -y ts-node ./src/services/stream/index"
   },

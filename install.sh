@@ -45,7 +45,8 @@ APPDIR=`pwd`
 
 echo "
 #!/bin/bash
-source /root/.bashrc
+. /root/.bashrc
+npm -v
 
 cd $APPDIR
 
@@ -67,7 +68,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/bin/bash /root/run.sh
+ExecStart=sh /root/run.sh
 Restart=always
 RestartSec=1s
 
@@ -75,9 +76,9 @@ RestartSec=1s
 WantedBy=multi-user.target
 " | sudo tee /lib/systemd/system/mediasoup.service
 
+sudo systemctl daemon-reload
+sudo systemctl restart mediasoup
+
 sleep 5s
 
 sudo systemctl status mediasoup --no-pager --lines=20 -l
-
-sudo systemctl daemon-reload
-sudo systemctl restart mediasoup
