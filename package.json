@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "rm -rf tmp && next build",
     "start": "next start",
-    "install": "sh install.sh",
+    "service": "sh install.sh",
     "stop": "sh stop.sh",
     "restart": "sh restart.sh",
     "lint": "next lint",

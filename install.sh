@@ -2,7 +2,8 @@ sudo apt-get update
 sudo apt-get install -y apt-utils
 sudo apt-get install -y build-essential
 sudo apt-get install -y --no-install-recommends python3.5 python3-pip
-sudo apt-get install -y ca-certificates curl prometheus-node-exporter cron gnupg git unzip ffmpeg
+sudo apt-get install -y ca-certificates curl prometheus-node-exporter cron gnupg git unzip ffmpeg psmisc
+sudo apt-get install -y libnss3
 
 sudo firewall-cmd --state | true
 sudo systemctl stop firewalld | true

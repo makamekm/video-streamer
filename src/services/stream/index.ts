@@ -62,21 +62,42 @@ async function createWebStream(state: State) {
             width: Number(state.width || WIDTH),
             height: Number(state.height || HEIGHT),
         },
-        args: ['--enable-gpu', '--no-sandbox'],
+        // args: ['--enable-gpu', '--no-sandbox', '--force-device-scale-factor=1'],
+        args: ['--disable-gpu', '--no-sandbox', '--force-device-scale-factor=1'],
         // args: ['--no-sandbox'],
     });
 
     page = await browser.newPage();
     await page.goto(state.uiUrl || "http://localhost:3000/stream");
-    return await getStream(page, {
-        audio: true,
-        video: true,
-        mimeType: 'video/webm;codecs=vp8',
-        streamConfig: {
-            immediateResume: true,
-        },
-        frameSize: 30,
-    });
+    const stream = new Transform();
+
+    let making = false;
+    setInterval(async () => {
+        if (making) return;
+        making = true;
+        try {
+            const screenshot = await page.screenshot({
+                omitBackground: true,
+                type: 'png',
+            });
+            stream.write(screenshot);
+        } catch (error) {
+            //
+        }
+        making = false;
+    }, 33);
+
+    return stream;
+    // return await getStream(page, {
+    //     audio: true,
+    //     video: true,
+    //     // mimeType: 'video/webm;codecs=vp8',
+    //     mimeType: 'video/webm',
+    //     streamConfig: {
+    //         immediateResume: true,
+    //     },
+    //     frameSize: 30,
+    // });
 }
 
 // function toTime(totalSeconds?: number | null) {
@@ -233,26 +254,28 @@ async function createStream(state: State, webStream: Transform, onEnd?: Function
         .input(webStream)
         .inputOptions([
             '-y',
+            '-rw_timeout',
+            '5000000',
             // '-probesize',
             // '10M',
             // '-analyzeduration',
             // '5000000',
-            '-rw_timeout',
-            '5000000',
             '-re',
+            '-f', 'image2pipe',
+            '-r', '30',
         ])
         // .input("http://localhost:8888/sdfsdf/index.m3u8")
         .input(OUT_TMP_STREAM)
         // .input(StreamInput(fileStream).url)
         .inputOptions([
             '-y',
+            '-rw_timeout',
+            '5000000',
+            '-re',
             // '-probesize',
             // '10M',
             // '-analyzeduration',
             // '5000000',
-            '-rw_timeout',
-            '5000000',
-            '-re',
         ])
         // .output("rtmp://vsuc.okcdn.ru/input/910019655595_910019655595_71_c5apktm7hy")
         .output(state.url!)
